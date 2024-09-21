@@ -153,10 +153,10 @@ class IpasgoAutomation(BaseAutomation):
             self.wait_for_stability(timeout=10)
 
             matricula_input = self.acessar_com_reattempt((By.ID, "SilkUIFramework_wt13_block_wtUsername_wtUserNameInput2"))
-            matricula_input.send_keys("14898500")
+            matricula_input.send_keys("0000")
 
             senha_input = self.acessar_com_reattempt((By.ID, "SilkUIFramework_wt13_block_wtPassword_wtPasswordInput"))
-            senha_input.send_keys("Clmf2024")
+            senha_input.send_keys("0000")
 
             self.safe_click((By.ID, "SilkUIFramework_wt13_block_wtAction_wtLoginButton"))
 
