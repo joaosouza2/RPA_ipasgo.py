@@ -70,7 +70,6 @@ def encontrar_arquivos_paciente(caminho_pasta, id_paciente, nome_paciente):
                 logging.info(f"Arquivo RC TO identificado: {arquivo}")
                 continue
 
-    # Retorna os arquivos RM e as classificações dos arquivos RC
     return arquivos_rm, arquivos_rc_fono, arquivos_rc_psi, arquivos_rc_to
 
 
@@ -169,7 +168,7 @@ class IpasgoAutomation(BaseAutomation):
             time.sleep(2)
             link_portal_webplan.click()
 
-            # Aguarda até que a nova página seja carregada
+            
             WebDriverWait(self.driver, 20).until(EC.number_of_windows_to_be(2))
             self.driver.switch_to.window(self.driver.window_handles[1])
 
@@ -191,7 +190,6 @@ class IpasgoAutomation(BaseAutomation):
             guias_tab.click()
             logging.info("Clicou na aba 'Guias' com sucesso.")
 
-            # Aguarda até que a aba de guias seja totalmente carregada
             time.sleep(3)
 
             self.acessar_guia_sadt()
@@ -208,7 +206,6 @@ class IpasgoAutomation(BaseAutomation):
             guia_sadt_button.click()
             logging.info("Clicou em 'Guia de SP/SADT' com sucesso.")
 
-            # Espera para garantir que a nova aba carregue completamente
             time.sleep(3)
 
             # Lida com o alerta caso ele apareça
@@ -273,7 +270,6 @@ class IpasgoAutomation(BaseAutomation):
                 fechar_button = self.driver.find_element(By.ID, "button-1")
                 fechar_button.click()
                 logging.info("Alerta fechado com sucesso.")
-                # Adiciona uma espera extra para garantir que o alerta tenha sido fechado corretamente
                 time.sleep(2)
         except (TimeoutException, NoSuchElementException):
             logging.info("Nenhum alerta foi detectado.")
@@ -286,7 +282,6 @@ class IpasgoAutomation(BaseAutomation):
             logging.info("Preenchendo o campo 'Número da Carteira'...")
             numero_carteira = self.get_excel_value('CARTEIRA')
 
-            # Localiza o campo e preenche com o número da carteira
             numero_carteira_input = self.acessar_com_reattempt((By.ID, "numeroDaCarteira"))
             numero_carteira_input.send_keys(numero_carteira)
 
@@ -294,10 +289,8 @@ class IpasgoAutomation(BaseAutomation):
 
             time.sleep(2)
 
-            # Pressiona a seta para baixo para selecionar o paciente
             numero_carteira_input.send_keys(Keys.ARROW_DOWN)
 
-            # Pressiona 'Enter' para confirmar a seleção
             numero_carteira_input.send_keys(Keys.ENTER)
 
             logging.info(f"Paciente selecionado com sucesso.")
@@ -309,13 +302,10 @@ class IpasgoAutomation(BaseAutomation):
         try:
             logging.info("Preenchendo o campo 'Caráter do Atendimento'...")
 
-            # Localiza o campo "Caráter do Atendimento"
             carater_atendimento_input = self.acessar_com_reattempt((By.ID, "caraterAtendimento"))
 
-            # Clica no campo
             carater_atendimento_input.click()
 
-            # Seta para baixo e seleciona a opção sugerida
             carater_atendimento_input.send_keys(Keys.ARROW_DOWN)  # seta para baixo
             carater_atendimento_input.send_keys(Keys.ENTER)  # tecla enter
 
@@ -332,7 +322,6 @@ class IpasgoAutomation(BaseAutomation):
             logging.info("Preenchendo o campo 'Indicação Clínica'...")
             indicacao_clinica = self.get_excel_value('indicacao_clinica')
 
-            # Localiza o campo e preenche com o valor da indicação clínica
             indicacao_clinica_input = self.acessar_com_reattempt((By.ID, "indicacaoClinica"))
             indicacao_clinica_input.send_keys(indicacao_clinica)
 
@@ -346,16 +335,12 @@ class IpasgoAutomation(BaseAutomation):
         try:
             logging.info("Abrindo a aba 'Procedimentos'...")
 
-            # Localiza o campo "Procedimentos" usando o ID do HTML
             procedimentos_tab = self.acessar_com_reattempt((By.ID, "ui-accordion-accordion-header-2"))
 
-            # Rolagem para garantir que o campo esteja visível na tela
             self.driver.execute_script("arguments[0].scrollIntoView(true);", procedimentos_tab)
 
-            # Aguarda um pouco para garantir que a rolagem tenha sido completada
             time.sleep(1)
 
-            # Clica no campo para expandir a aba
             procedimentos_tab.click()
 
             time.sleep(2)
@@ -370,23 +355,17 @@ class IpasgoAutomation(BaseAutomation):
         try:
             logging.info("Inserindo procedimento...")
 
-            # Localiza o botão pelo ID
             inserir_button = self.acessar_com_reattempt((By.ID, "incluirProcedimento"))
 
-            # Clica no botão
             inserir_button.click()
             logging.info("Botão 'Inserir Procedimento' clicado com sucesso.")
 
-            # Aguarda 1 segundo para garantir que o campo de preenchimento esteja pronto
             time.sleep(1)
 
-            # Pega o valor da coluna 'Status' como string, preservando os zeros à esquerda
             procedimento = self.get_excel_value('Status').zfill(8)  # Ajuste conforme o número de dígitos
 
-            # Localiza o campo de preenchimento que é ativado após o clique no botão 'Inserir Procedimento'
             procedimento_input = self.acessar_com_reattempt((By.XPATH, '//*[@id="registroProcedimentoCodigo"]/input'))
 
-            # Preenche o campo com o valor extraído da coluna 'Status', preservando todos os dígitos
             procedimento_input.send_keys(procedimento)
 
             time.sleep(2)
@@ -395,7 +374,6 @@ class IpasgoAutomation(BaseAutomation):
 
             logging.info("Procedimento selecionado com sucesso.")
 
-            # Limpa e preenche o campo 'Quantidade'
             total = self.get_excel_value('TOTAL')
 
             total_input = self.acessar_com_reattempt((By.XPATH, '//*[@id="registroProcedimentoQuantidade"]/input'))
@@ -410,10 +388,8 @@ class IpasgoAutomation(BaseAutomation):
 
             logging.info(f"Campo 'QUANTIDADE' preenchido com sucesso com o valor: {total}")
 
-            # Localiza o botão 'Confirmar' pelo XPath
             confirmar_button = self.acessar_com_reattempt((By.XPATH, '//*[@id="confirmarEdicaoDeProcedimento"]'))
 
-            # Clica no botão 'Confirmar' para salvar as alterações
             confirmar_button.click()
 
             time.sleep(2)
@@ -426,24 +402,20 @@ class IpasgoAutomation(BaseAutomation):
         try:
             logging.info("Preenchendo campos dos profissionais...")
 
-            # Abertura da planilha e extração do valor da coluna CBO
             cbo = str(self.df['CBO'].iloc[self.row_index])[:6]
 
-            # Localiza e expande o campo 'Profissionais'
             profissionais_tab = self.acessar_com_reattempt((By.XPATH, '//*[@id="ui-accordion-accordion-header-3"]'))
             profissionais_tab.click()
             logging.info("Aba 'Profissionais' expandida com sucesso.")
 
             time.sleep(1)
 
-            # Clica no botão 'Inserir'
             inserir_button = self.acessar_com_reattempt((By.XPATH, '//*[@id="incluirProfissional"]'))
             inserir_button.click()
             logging.info("Botão 'Inserir Profissional' clicado com sucesso.")
 
             time.sleep(2)
 
-            # Localiza o campo 'Seq.Grau Partic.' e seleciona a opção (12) Clínico
             grau_partic_input = self.acessar_com_reattempt((By.XPATH, '//*[@id="registroProfissionalGrauParticipacao"]/input'))
             grau_partic_input.click()
             logging.info("Campo 'Seq.Grau Partic.' clicado com sucesso.")
@@ -457,7 +429,6 @@ class IpasgoAutomation(BaseAutomation):
             grau_partic_input.send_keys(Keys.RETURN)
             time.sleep(1)
 
-            # Preencher campo 'Profissional'
             cod_profissional = self.get_excel_value('COD_PROFISSIONAL')
             profissional_codigo_input = self.acessar_com_reattempt((By.XPATH, '//*[@id="registroProfissionalCodigo"]/input'))
             profissional_codigo_input.send_keys(cod_profissional)
@@ -466,11 +437,9 @@ class IpasgoAutomation(BaseAutomation):
 
             time.sleep(2)
 
-            # Preencher campo 'CBO'
             cbo_input = self.acessar_com_reattempt((By.XPATH, '//*[@id="registroProfissionalCodCBO"]/input'))
             cbo_input.click()
 
-            # Selecionar a opção correta baseada no CBO
             time.sleep(3)
             if cbo == "223605":
                 cbo_input.send_keys(Keys.ARROW_DOWN)
