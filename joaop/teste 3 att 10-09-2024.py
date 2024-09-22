@@ -173,10 +173,8 @@ class IpasgoAutomation(BaseAutomation):
             WebDriverWait(self.driver, 20).until(EC.number_of_windows_to_be(2))
             self.driver.switch_to.window(self.driver.window_handles[1])
 
-            # Espera pela presença do menu principal
             self.acessar_com_reattempt((By.ID, "menuPrincipal"))
 
-            # Adiciona um tempo de espera para garantir que a página esteja completamente carregada
             time.sleep(4)
 
             self.acessar_guias()
@@ -242,15 +240,20 @@ class IpasgoAutomation(BaseAutomation):
             # Clica no botão 'Escolher arquivo' e faz o upload
             self.Anexando_RM()
 
+            #selecionando opção de anexo
             self.selecionar_relatorio_clinico()
 
+            #anexo relatório clínico
             self.Anexando_RC()
 
+            #salvando e confirmando a solicitação
             self.salvar_confirmar()
 
+            #armazenando o numero em uma lista para print em txt ou excel
             lista_numeros = []  # Inicializa a lista para armazenar os números
             self.salvar_anotar_numero(lista_numeros) #salva na lista
 
+            #salvando numero em excel
             self.salvar_numero_no_excel(lista_numeros[-1]) #armazena no excel [-1] é para pegar o último termo adicionado
 
             
