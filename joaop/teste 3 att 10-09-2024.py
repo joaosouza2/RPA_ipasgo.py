@@ -14,29 +14,28 @@ import os
 import re
 from pathlib import Path
 import xlwings as xw
+import shutil
 
 
-
-# Configuração do logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
-# Definição da função encontrar_arquivos_paciente
+
 def encontrar_arquivos_paciente(caminho_pasta, id_paciente, nome_paciente):
     from pathlib import Path
     import re
 
     p = Path(caminho_pasta)
 
-    # Variáveis para armazenar os arquivos RM e os diferentes tipos de RC
+    
     arquivos_rm = []
     arquivos_rc_fono = []
     arquivos_rc_psi = []
     arquivos_rc_to = []
 
-    # Padrão para arquivos RM (case-insensitive no início)
+    # Padrão para arquivos RM usando expressões regulares 
     padrao_rm = rf'(?i)^RM.*{id_paciente}.*\..+$'
 
-    # Padrões para os três tipos de RC (simplificado para focar em FONO, PSI e TO)
+    # Padrões para os três tipos de documentation usando expressões regulares
     padrao_rc_fono = rf'(?i)^RC.*{id_paciente}.*FONO.*\..+$'
     padrao_rc_psi = rf'(?i)^RC.*{id_paciente}.*PSI.*\..+$'
     padrao_rc_to = rf'(?i)^RC.*{id_paciente}.*TO.*\..+$'
@@ -152,10 +151,10 @@ class IpasgoAutomation(BaseAutomation):
             self.wait_for_stability(timeout=10)
 
             matricula_input = self.acessar_com_reattempt((By.ID, "SilkUIFramework_wt13_block_wtUsername_wtUserNameInput2"))
-            matricula_input.send_keys("0000")
+            matricula_input.send_keys("14898500")
 
             senha_input = self.acessar_com_reattempt((By.ID, "SilkUIFramework_wt13_block_wtPassword_wtPasswordInput"))
-            senha_input.send_keys("0000")
+            senha_input.send_keys("Clmf2024")
 
             self.safe_click((By.ID, "SilkUIFramework_wt13_block_wtAction_wtLoginButton"))
 
@@ -614,46 +613,46 @@ class IpasgoAutomation(BaseAutomation):
         try:
             logging.info("Iniciando o processo de upload dos arquivos RC do paciente...")
 
-            # Define o caminho base
+            
             base_path = Path(r"G:\Meu Drive\IPASGO\1.RELATORIO MEDICO E CLINICO")
 
-            # Obtém 'Paciente', 'CARTEIRA' e 'CBO' da planilha Excel
+            
             nome_paciente = self.get_excel_value('Paciente')
             id_paciente = self.get_excel_value('CARTEIRA')
             
-            # Converte o valor de CBO para string, removendo qualquer ponto decimal
+            
             cbo = self.get_excel_value('CBO')
-            cbo = str(int(float(cbo)))  # Converte para inteiro e depois para string
+            cbo = str(int(float(cbo)))  
 
             if not nome_paciente or not id_paciente or not cbo:
                 logging.error("Falha ao obter o nome, ID do paciente ou CBO da planilha.")
                 return
             logging.info(f"Paciente: {nome_paciente}, ID: {id_paciente}, CBO: {cbo}")
 
-            # Constrói o nome da pasta do paciente
+            
             patient_folder_name = f"{nome_paciente}-{id_paciente}"
 
-            # Constrói o caminho completo para a pasta do paciente
+            
             patient_folder_path = base_path / patient_folder_name
 
             logging.info(f"Caminho da pasta do paciente: {patient_folder_path}")
 
-            # Verifica se a pasta do paciente existe
+            
             if not patient_folder_path.is_dir():
                 logging.error(f"A pasta do paciente '{patient_folder_path}' não foi encontrada.")
                 return
 
-            # Encontra os arquivos do paciente, focando apenas em RC
+            
             _, arquivos_rc_fono, arquivos_rc_psi, arquivos_rc_to = encontrar_arquivos_paciente(patient_folder_path, id_paciente, nome_paciente)
 
-            # Verifica o tipo de RC com base no CBO
-            if cbo == "251510":  # PSI
+            
+            if cbo == "251510":  
                 arquivos_rc = arquivos_rc_psi
                 logging.info("CBO indica PSICOLOGIA. Selecionando arquivos PSI.")
-            elif cbo == "223810":  # FONO
+            elif cbo == "223810":  
                 arquivos_rc = arquivos_rc_fono
                 logging.info("CBO indica FONOAUDIOLOGIA. Selecionando arquivos FONO.")
-            elif cbo == "223905":  # TO
+            elif cbo == "223905":  
                 arquivos_rc = arquivos_rc_to
                 logging.info("CBO indica TERAPIA OCUPACIONAL. Selecionando arquivos TO.")
             else:
@@ -666,21 +665,21 @@ class IpasgoAutomation(BaseAutomation):
 
             logging.info(f"Arquivos RC encontrados: {arquivos_rc}")
 
-            # Faz o upload do primeiro arquivo RC encontrado
+            #
             for arquivo_para_upload in arquivos_rc:
-                # Localiza o elemento <input type="file">
+                
                 input_file = self.driver.find_element(By.CSS_SELECTOR, 'input[type="file"]')
                 logging.info("Elemento de upload encontrado.")
 
-                # Envia o caminho do arquivo para o elemento 'input'
+                
                 input_file.send_keys(str(arquivo_para_upload))
                 logging.info(f"Arquivo '{arquivo_para_upload}' selecionado com sucesso.")
 
                 time.sleep(2)
 
-                break  # Encerra o loop após carregar o primeiro arquivo RC
+                break  
 
-            # Clica no botão 'Adicionar'
+            
             self.safe_click((By.XPATH, '//*[@id="upload_form"]/div/input[2]'))
             time.sleep(1)
 
@@ -693,37 +692,37 @@ class IpasgoAutomation(BaseAutomation):
         try:
             logging.info("Iniciando o processo de salvar...")
 
-            # Localiza o botão 'Salvar' usando o XPATH
+            
             salvar_button = self.driver.find_element(By.XPATH, '//*[@id="btnGravar"]')
 
             # Usa JavaScript para rolar até o botão 'Salvar'
             self.driver.execute_script("arguments[0].scrollIntoView(true);", salvar_button)
             logging.info("Botão 'Salvar' rolado para a visualização.")
 
-            # Aguarda um pouco para garantir que o elemento esteja visível
+            
             time.sleep(1)
 
-            # Clica no botão 'Salvar'
+            
             salvar_button.click()
             logging.info("Botão 'Salvar' clicado com sucesso.")
 
-            # Aguarda até que o modal de confirmação apareça
+            
             WebDriverWait(self.driver, 10).until(
                 EC.presence_of_element_located((By.XPATH, '/html/body/div[8]/div[3]/div/button[1]'))
             )
             logging.info("Modal de confirmação detectado.")
 
-            # Localiza o botão 'Sim' na janela de confirmação
+            
             confirmar_button = self.driver.find_element(By.XPATH, '/html/body/div[8]/div[3]/div/button[1]')
 
-            # Usa JavaScript para rolar até o botão 'Sim'
+            
             self.driver.execute_script("arguments[0].scrollIntoView(true);", confirmar_button)
             logging.info("Botão 'Sim' rolado para a visualização.")
 
-            # Aguarda um pouco para garantir que o elemento esteja visível
+            
             time.sleep(1)
 
-            # Clica no botão 'Sim' para confirmar a ação
+           
             confirmar_button.click()
             logging.info("Botão 'Sim' clicado com sucesso.")
         except Exception as e:
@@ -734,50 +733,55 @@ class IpasgoAutomation(BaseAutomation):
         try:
             logging.info("Iniciando o processo de captura do número da guia...")
 
-            # Primeiro, verificamos se o pop-up está visível
+          
             pup_up = WebDriverWait(self.driver, 10).until(
                 EC.presence_of_element_located((By.XPATH, '/html/body/div[8]'))
             )
             logging.info("Pop-up localizado com sucesso.")
 
-            # Depois, verificamos a tela de diálogo
+           
             tela_dialogo = WebDriverWait(self.driver, 10).until(
                 EC.presence_of_element_located((By.XPATH, '//*[@id="ui-id-47"]'))
             )
             logging.info("Tela de diálogo localizada com sucesso.")
 
-            # Em seguida, localizamos o campo de texto que contém o número
+           
             dialogo_texto = WebDriverWait(self.driver, 10).until(
                 EC.presence_of_element_located((By.XPATH, '//*[@id="dialogText"]'))
             )
             logging.info("Campo de texto localizado com sucesso.")
 
-            # Agora, localizamos o número da guia (o texto fora das tags <b>)
+        
             elemento_numero_guia = WebDriverWait(self.driver, 10).until(
                 EC.presence_of_element_located((By.XPATH, '//*[@id="dialogText"]/div[2]'))
             )
             logging.info("Elemento contendo o número da guia localizado com sucesso.")
 
-            # O número está dentro do texto do 'div', após a tag <b>. Precisamos pegar o número extra.
+            
             numero_guia_completo = elemento_numero_guia.text.strip()
 
-            # Como o número está logo após o 'Nº Guia Operadora:', extraímos o número especificamente
+            
             numero_guia = numero_guia_completo.split("Nº Guia Operadora:")[-1].strip()
             logging.info(f"Número da Guia capturado: {numero_guia}")
 
-            # Adiciona o número à lista de números
+            
+            nome_paciente = self.df['Paciente'].iloc[self.row_index]
+            logging.info(f"Nome do paciente capturado: {nome_paciente}")
+
+            nome_especialidade = self.df['ESPECIALIDDE'].iloc[self.row_index]
+            logging.info(f"Nome da especialidade capturada: {nome_especialidade}")
+            
             lista_numeros.append(numero_guia)
 
-            # Grava a lista de números em um arquivo txt
-            with open('numeros_guias.txt', 'w') as f:
-                for numero in lista_numeros:
-                    f.write(f"{numero}\n")
-            logging.info(f"Números das guias salvos no arquivo 'numeros_guias.txt'.")
+            # Grava a lista de números e o nome do paciente em um arquivo txt (sem sobrescrever)
+            with open('numeros_guias.txt', 'a') as f: 
+                f.write(f"Paciente: {nome_paciente}  {nome_especialidade} - Nº Guia Operadora: {numero_guia}\n")
+            logging.info(f"Números das guias e nomes dos pacientes salvos no arquivo 'numeros_guias.txt'.")
 
-            # Após capturar o número, pressionar ESC para fechar o aviso
+            
             logging.info("Tentando fechar o pop-up com a tecla ESC...")
             time.sleep(1)
-            # Envia a tecla ESC para fechar o pop-up
+            
             ActionChains(self.driver).send_keys(Keys.ESCAPE).perform()
             logging.info("Tecla ESC enviada com sucesso para fechar o pop-up.")
 
@@ -789,29 +793,37 @@ class IpasgoAutomation(BaseAutomation):
         try:
             logging.info("Iniciando o processo de salvamento do número no Excel usando xlwings...")
 
-            # Cria uma cópia do arquivo Excel original
+            
             file_copy_path = r"C:\Users\AUDITORIA_CLMF\Desktop\ipasgo.py\joaop\BASE_AUTORIZACAO_COPIA.xlsx"
 
-            # Abre o arquivo Excel existente com xlwings
-            wb = xw.Book(self.file_path)
+            
+            if not os.path.exists(file_copy_path):
+                logging.info("Arquivo de cópia não encontrado. Criando uma cópia do arquivo original...")
+                # Cria uma cópia do arquivo original apenas se ele ainda não existir
+                shutil.copy(self.file_path, file_copy_path)
+                logging.info(f"Cópia criada com sucesso em {file_copy_path}.")
+            else:
+                logging.info("Cópia já existente. Usando o arquivo de cópia.")
+
+            # Abre o arquivo Excel existente com xlwings (trabalhando sempre no arquivo de cópia)
+            wb = xw.Book(file_copy_path)
             ws = wb.sheets[self.sheet_name]
 
-            # Define a linha a ser atualizada a partir de self.row_index, ajustando para a linha real (linha+2)
-            row_to_update = self.row_index + 2  # Ajusta o índice para Excel (row_index no código -> linha no Excel)
+            row_to_update = self.row_index + 2  
 
-            # Define a coluna onde deseja salvar o número
-            col_to_update = 'P'  # Ajuste a coluna para onde o número deve ser salvo
+            # Define a coluna onde deseja salvar o número (É referenciado a coluna segundo a letra que essa coluna pertence coluna 1 = coluna A)
+            col_to_update = 'P'  
 
-            # Salva o número na célula específica
+            
             ws.range(f'{col_to_update}{row_to_update}').value = numero_guia
 
-            # Salva a cópia do arquivo
+            
             wb.save(file_copy_path)
             wb.close()
-            logging.info(f"Número da Guia {numero_guia} salvo na cópia do Excel na linha {row_to_update}, coluna {col_to_update}.")
+            logging.info(f"Número da Guia {numero_guia} salvo no arquivo de cópia na linha {row_to_update}, coluna {col_to_update}.")
 
         except Exception as e:
-            logging.error(f"Erro ao salvar o número no Excel: {e}")
+           logging.error(f"Erro ao salvar o número no Excel: {e}")
 
    
 
