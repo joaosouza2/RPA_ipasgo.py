@@ -129,10 +129,17 @@ class IpasgoAutomation(BaseAutomation):
     
     def __init__(self):
         super().__init__()
-        self.file_path = r"C:\Users\AUDITORIA_CLMF\Desktop\ipasgo.py\joaop\BASE_AUTORIZACAO - NOVO 08-08-2024.xlsx"
+        self.file_path = r"C:\Users\joaop\OneDrive\Área de Trabalho\RPA_ipasgo.py\joaop\BASE_AUTORIZACAO - NOVO 08-08-2024.xlsx"
         self.sheet_name = 'AUTORIZACOES'
         self.df = pd.read_excel(self.file_path, sheet_name=self.sheet_name)
-        self.row_index = 32 # Torne este valor dinâmico se necessário
+        self.df = pd.read_excel(self.file_path, sheet_name=self.sheet_name)
+
+        # Defina aqui o intervalo de linhas que deseja processar
+        self.start_row = 0  # (índice começa em 0)
+        self.end_row = len(self.df) - 1  # Linha final pode ser inserida ou o algoritmo irá percorrer todo o excel até a última linha
+
+        # Inicializa o row_index
+        self.row_index = self.start_row
 
     def get_excel_value(self, column_name):
         try:
@@ -149,6 +156,7 @@ class IpasgoAutomation(BaseAutomation):
             self.driver.get("https://portalos.ipasgo.go.gov.br/Portal_Dominio/PrestadorLogin.aspx")
             logging.info("Esperando a página carregar...")
             self.wait_for_stability(timeout=10)
+
 
             matricula_input = self.acessar_com_reattempt((By.ID, "SilkUIFramework_wt13_block_wtUsername_wtUserNameInput2"))
             matricula_input.send_keys("14898500")
@@ -207,12 +215,21 @@ class IpasgoAutomation(BaseAutomation):
 
             time.sleep(3)
 
+        except Exception as e:
+            logging.error(f"Erro ao processar o guia SP/SADT: {e}")
+            return
+        
+
+    def process_row(self):
+        """Processa uma única linha do Excel."""
+        try:
             # Lida com o alerta caso ele apareça
             self.lidar_com_alerta()
 
             # Preenche o número da carteira apenas após o alerta ser fechado
             self.preencher_numero_carteira()
 
+            # Preenche o tipo de atendimento e quantas guias serão solicitadas
             self.preencher_carater_atendimento()
 
             # Preenche o campo 'Indicação Clínica'
@@ -236,27 +253,32 @@ class IpasgoAutomation(BaseAutomation):
             # Clica no botão 'Escolher arquivo' e faz o upload
             self.Anexando_RM()
 
-            #selecionando opção de anexo
+            # Selecionando opção de anexo
             self.selecionar_relatorio_clinico()
 
-            #anexo relatório clínico
+            # Anexo relatório clínico
             self.Anexando_RC()
 
-            #salvando e confirmando a solicitação
+            # Salvando e confirmando a solicitação
             self.salvar_confirmar()
 
-            #armazenando o numero em uma lista para print em txt ou excel
+            # Armazenando o número em uma lista para print em txt ou excel
             lista_numeros = []  # Inicializa a lista para armazenar os números
-            self.salvar_anotar_numero(lista_numeros) #salva na lista
+            self.salvar_anotar_numero(lista_numeros)  # Salva na lista
 
-            #salvando numero em excel
-            self.salvar_numero_no_excel(lista_numeros[-1]) #armazena no excel [-1] é para pegar o último termo adicionado
-
-            
+            # Salvando número em Excel
+            self.salvar_numero_no_excel(lista_numeros[-1])  # Armazena no Excel  [-1] é para pegar o último termo adicionado
 
         except Exception as e:
-            logging.error(f"Erro ao processar o guia SP/SADT: {e}")
-            return
+            logging.error(f"Erro ao processar a linha {self.row_index}: {e}")
+            # Escreve o erro no arquivo txt
+            nome_paciente = self.get_excel_value('Paciente')
+            with open('numeros_guias.txt', 'a') as f:
+                f.write(f"Paciente: {nome_paciente} - Erro: {e}\n")
+            # Deixa a linha correspondente no Excel vazia ou marca como erro
+            self.salvar_numero_no_excel('')  # Salva vazio no Excel
+            # Você pode opcionalmente registrar mais detalhes ou tomar outras ações
+
 
     def lidar_com_alerta(self):
         """Lida com possíveis alertas que possam aparecer na página."""
@@ -276,24 +298,35 @@ class IpasgoAutomation(BaseAutomation):
             logging.error(f"Erro ao lidar com o alerta: {e}")
 
     def preencher_numero_carteira(self):
-        """Preenche o campo 'Número da Carteira' com dados do Excel."""
+        """Preenche o campo 'Número da Carteira' com dados do Excel e valida o nome do beneficiário."""
         try:
             logging.info("Preenchendo o campo 'Número da Carteira'...")
             numero_carteira = self.get_excel_value('CARTEIRA')
+            nome_esperado = self.get_excel_value('Paciente')  # Ajuste se necessário
 
             numero_carteira_input = self.acessar_com_reattempt((By.ID, "numeroDaCarteira"))
             numero_carteira_input.send_keys(numero_carteira)
-
             logging.info(f"Campo 'Número da Carteira' preenchido com sucesso com o valor: {numero_carteira}")
-
             time.sleep(2)
-
             numero_carteira_input.send_keys(Keys.ARROW_DOWN)
-
             numero_carteira_input.send_keys(Keys.ENTER)
+            logging.info("Aguardando a conclusão da etapa do token...")
 
-            logging.info(f"Paciente selecionado com sucesso.")
+            # Aguarda até que o campo 'nomeDoBeneficiario' seja preenchido
+            WebDriverWait(self.driver, 180).until(
+                lambda driver: driver.find_element(By.XPATH, '//*[@id="nomeDoBeneficiario"]').get_attribute('value') != ''
+            )
 
+            # Valida se o nome do beneficiário é o esperado
+            nome_preenchido = self.driver.find_element(By.XPATH, '//*[@id="nomeDoBeneficiario"]').get_attribute('value')
+            if nome_preenchido.strip().lower() != nome_esperado.strip().lower():
+                logging.error("O nome do beneficiário preenchido não corresponde ao esperado.")
+                return
+
+            logging.info("Etapa do token concluída com sucesso. Prosseguindo com o script.")
+
+        except TimeoutException:
+            logging.error("Tempo limite excedido ao esperar pela conclusão da etapa do token.")
         except Exception as e:
             logging.error(f"Erro ao preencher o campo 'Número da Carteira': {e}")
 
@@ -305,8 +338,8 @@ class IpasgoAutomation(BaseAutomation):
 
             carater_atendimento_input.click()
 
-            carater_atendimento_input.send_keys(Keys.ARROW_DOWN)  # seta para baixo
-            carater_atendimento_input.send_keys(Keys.ENTER)  # tecla enter
+            carater_atendimento_input.send_keys(Keys.ARROW_DOWN)  
+            carater_atendimento_input.send_keys(Keys.ENTER)  
 
             logging.info("Campo 'Caráter do Atendimento' preenchido com sucesso.")
 
@@ -314,6 +347,7 @@ class IpasgoAutomation(BaseAutomation):
 
         except Exception as e:
             logging.error(f"Erro ao preencher o campo 'Caráter do Atendimento': {e}")
+
 
     def preencher_indicacao_clinica(self):
         """Preenche o campo 'Indicação Clínica' com dados do Excel."""
@@ -421,7 +455,7 @@ class IpasgoAutomation(BaseAutomation):
 
             time.sleep(2)
 
-            for _ in range(5):  # Ajuste o número de setas para baixo conforme necessário
+            for _ in range(5):  
                 grau_partic_input.send_keys(Keys.ARROW_DOWN)
                 time.sleep(0.2)
 
@@ -533,7 +567,7 @@ class IpasgoAutomation(BaseAutomation):
             logging.info("Iniciando o processo de upload dos arquivos RM do paciente...")
 
             # Define o caminho base
-            base_path = Path(r"G:\Meu Drive\IPASGO\1.RELATORIO MEDICO E CLINICO")
+            base_path = Path(r"C:\Users\joaop\OneDrive\Área de Trabalho\IPASGO")
 
             # Obtém 'Paciente' e 'CARTEIRA' da planilha Excel
             nome_paciente = self.get_excel_value('Paciente')
@@ -598,8 +632,7 @@ class IpasgoAutomation(BaseAutomation):
             tipo_anexo_dropdown.click()
             time.sleep(1)
 
-            # Simula a tecla para baixo várias vezes até chegar na opção desejada
-            for _ in range(9):  # Ajuste o número de vezes conforme necessário
+            for _ in range(9):  
                 tipo_anexo_dropdown.send_keys(Keys.ARROW_DOWN)
 
             tipo_anexo_dropdown.send_keys(Keys.RETURN)
@@ -614,7 +647,7 @@ class IpasgoAutomation(BaseAutomation):
             logging.info("Iniciando o processo de upload dos arquivos RC do paciente...")
 
             
-            base_path = Path(r"G:\Meu Drive\IPASGO\1.RELATORIO MEDICO E CLINICO")
+            base_path = Path(r"C:\Users\joaop\OneDrive\Área de Trabalho\IPASGO")
 
             
             nome_paciente = self.get_excel_value('Paciente')
@@ -665,7 +698,7 @@ class IpasgoAutomation(BaseAutomation):
 
             logging.info(f"Arquivos RC encontrados: {arquivos_rc}")
 
-            #
+            
             for arquivo_para_upload in arquivos_rc:
                 
                 input_file = self.driver.find_element(By.CSS_SELECTOR, 'input[type="file"]')
@@ -695,7 +728,7 @@ class IpasgoAutomation(BaseAutomation):
             
             salvar_button = self.driver.find_element(By.XPATH, '//*[@id="btnGravar"]')
 
-            # Usa JavaScript para rolar até o botão 'Salvar'
+            
             self.driver.execute_script("arguments[0].scrollIntoView(true);", salvar_button)
             logging.info("Botão 'Salvar' rolado para a visualização.")
 
@@ -799,7 +832,7 @@ class IpasgoAutomation(BaseAutomation):
             
             if not os.path.exists(file_copy_path):
                 logging.info("Arquivo de cópia não encontrado. Criando uma cópia do arquivo original...")
-                # Cria uma cópia do arquivo original apenas se ele ainda não existir
+                # Cria uma cópia do arquivo original apenas se ele ainda não existir, caso exista ele irá salvar no já existente, que possivelmente já contenha elementos de loops anteriores
                 shutil.copy(self.file_path, file_copy_path)
                 logging.info(f"Cópia criada com sucesso em {file_copy_path}.")
             else:
@@ -836,6 +869,25 @@ if __name__ == "__main__":
     ipasgo = IpasgoAutomation()
     ipasgo.acessar_portal_ipasgo()
 
-    # Fechar o navegador apenas quando autorizado
-    input("Pressione 'S' para fechar o navegador...")
+
+
+    # Valida o intervalo de linhas definido
+    max_row = len(ipasgo.df) - 1
+    if ipasgo.start_row < 0:
+        print("A linha inicial não pode ser negativa.")
+        exit(1)
+    if ipasgo.end_row > max_row:
+        print(f"A linha final não pode ser maior que {max_row}.")
+        exit(1)
+    if ipasgo.start_row > ipasgo.end_row:
+        print("A linha inicial não pode ser maior que a linha final.")
+        exit(1)
+
+    # Processa cada linha no intervalo especificado
+    for idx in range(ipasgo.start_row, ipasgo.end_row + 1):
+        ipasgo.row_index = idx
+        logging.info(f"Iniciando o processamento da linha {idx}")
+        ipasgo.process_row()
+
+    input("Pressione qualquer tecla para fechar o navegador...")
     ipasgo.close()
