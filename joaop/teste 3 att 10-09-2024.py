@@ -10,32 +10,27 @@ import time
 from selenium.webdriver.common.keys import Keys
 from openpyxl import load_workbook
 from selenium.webdriver.common.action_chains import ActionChains
-import os 
+import os
 import re
 from pathlib import Path
 import xlwings as xw
 import shutil
 
-
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 
 def encontrar_arquivos_paciente(caminho_pasta, id_paciente, nome_paciente):
-    from pathlib import Path
-    import re
-
     p = Path(caminho_pasta)
 
-    
     arquivos_rm = []
     arquivos_rc_fono = []
     arquivos_rc_psi = []
     arquivos_rc_to = []
 
-    # Padrão para arquivos RM usando expressões regulares 
+    # Padrão para arquivos RM usando expressões regulares
     padrao_rm = rf'(?i)^RM.*{id_paciente}.*\..+$'
 
-    # Padrões para os três tipos de documentation usando expressões regulares
+    # Padrões para os três tipos de documentação usando expressões regulares
     padrao_rc_fono = rf'(?i)^RC.*{id_paciente}.*FONO.*\..+$'
     padrao_rc_psi = rf'(?i)^RC.*{id_paciente}.*PSI.*\..+$'
     padrao_rc_to = rf'(?i)^RC.*{id_paciente}.*TO.*\..+$'
@@ -70,10 +65,6 @@ def encontrar_arquivos_paciente(caminho_pasta, id_paciente, nome_paciente):
                 continue
 
     return arquivos_rm, arquivos_rc_fono, arquivos_rc_psi, arquivos_rc_to
-
-
-
-
 
 
 class BaseAutomation:
@@ -126,20 +117,37 @@ class BaseAutomation:
 
 
 class IpasgoAutomation(BaseAutomation):
-    
+
+
     def __init__(self):
         super().__init__()
-        self.file_path = r"C:\Users\joaop\OneDrive\Área de Trabalho\RPA_ipasgo.py\joaop\BASE_AUTORIZACAO - NOVO 08-08-2024.xlsx"
+        self.file_path = r"C:\Users\joaop\RPA_ipasgo.py\SOLICITACOES_AUTORIZACAO_FACPLAN.xlsx"
+        self.copy_file_path = r"C:\Users\joaop\RPA_ipasgo.py\SOLICITACOES_AUTORIZACAO_FACPLAN_COPIA.xlsx"
         self.sheet_name = 'AUTORIZACOES'
-        self.df = pd.read_excel(self.file_path, sheet_name=self.sheet_name)
-        self.df = pd.read_excel(self.file_path, sheet_name=self.sheet_name)
 
-        # Defina aqui o intervalo de linhas que deseja processar
-        self.start_row = 0  # (índice começa em 0)
-        self.end_row = len(self.df) - 1  # Linha final pode ser inserida ou o algoritmo irá percorrer todo o excel até a última linha
+        self.df = pd.read_excel(
+            self.file_path,
+            sheet_name=self.sheet_name,
+            header=0,
+            engine='openpyxl'
+        )
 
-        # Inicializa o row_index
+        
+        self.df.columns = [col.upper().strip() for col in self.df.columns]# Normaliza os nomes das colunas para maiúsculas
+
+
+        if not os.path.exists(self.copy_file_path):
+            logging.info("Criando uma cópia da planilha...")
+            shutil.copy(self.file_path, self.copy_file_path)
+        else:
+            logging.info("Cópia da planilha já existe.")
+
+        # Definição do intervalo de linhas
+        self.start_row = 0
+        self.end_row = len(self.df) - 1
         self.row_index = self.start_row
+
+
 
     def get_excel_value(self, column_name):
         try:
@@ -149,6 +157,8 @@ class IpasgoAutomation(BaseAutomation):
             logging.error(f"A coluna '{column_name}' não foi encontrada no arquivo Excel.")
             return ""
 
+
+
     def acessar_portal_ipasgo(self):
         """Executa o fluxo principal do IPASGO."""
         try:
@@ -156,7 +166,6 @@ class IpasgoAutomation(BaseAutomation):
             self.driver.get("https://portalos.ipasgo.go.gov.br/Portal_Dominio/PrestadorLogin.aspx")
             logging.info("Esperando a página carregar...")
             self.wait_for_stability(timeout=10)
-
 
             matricula_input = self.acessar_com_reattempt((By.ID, "SilkUIFramework_wt13_block_wtUsername_wtUserNameInput2"))
             matricula_input.send_keys("14898500")
@@ -175,7 +184,6 @@ class IpasgoAutomation(BaseAutomation):
             time.sleep(2)
             link_portal_webplan.click()
 
-            
             WebDriverWait(self.driver, 20).until(EC.number_of_windows_to_be(2))
             self.driver.switch_to.window(self.driver.window_handles[1])
 
@@ -188,6 +196,8 @@ class IpasgoAutomation(BaseAutomation):
         except Exception as e:
             logging.error(f"Erro ao acessar o site ou preencher o formulário: {e}")
             return
+
+
 
     def acessar_guias(self):
         """Acessa a aba 'Guias' no menu principal."""
@@ -205,6 +215,8 @@ class IpasgoAutomation(BaseAutomation):
             logging.error(f"Erro ao clicar na aba 'Guias': {e}")
             return
 
+
+
     def acessar_guia_sadt(self):
         """Acessa o 'Guia de SP/SADT' na aba 'Guias'."""
         try:
@@ -218,66 +230,7 @@ class IpasgoAutomation(BaseAutomation):
         except Exception as e:
             logging.error(f"Erro ao processar o guia SP/SADT: {e}")
             return
-        
 
-    def process_row(self):
-        """Processa uma única linha do Excel."""
-        try:
-            # Lida com o alerta caso ele apareça
-            self.lidar_com_alerta()
-
-            # Preenche o número da carteira apenas após o alerta ser fechado
-            self.preencher_numero_carteira()
-
-            # Preenche o tipo de atendimento e quantas guias serão solicitadas
-            self.preencher_carater_atendimento()
-
-            # Preenche o campo 'Indicação Clínica'
-            self.preencher_indicacao_clinica()
-
-            # Abre a aba 'Procedimentos'
-            self.acessar_procedimentos()
-
-            # Clicando em inserir
-            self.clicar_inserir_e_preencher()
-
-            # Preenchendo campo dos profissionais
-            self.preencher_campo_profissionais()
-
-            # Abre a aba 'Observações/Justificativa'
-            self.preencher_observacao_justificativa()
-
-            # Anexa o documento
-            self.selecionar_pedido_medico()
-
-            # Clica no botão 'Escolher arquivo' e faz o upload
-            self.Anexando_RM()
-
-            # Selecionando opção de anexo
-            self.selecionar_relatorio_clinico()
-
-            # Anexo relatório clínico
-            self.Anexando_RC()
-
-            # Salvando e confirmando a solicitação
-            self.salvar_confirmar()
-
-            # Armazenando o número em uma lista para print em txt ou excel
-            lista_numeros = []  # Inicializa a lista para armazenar os números
-            self.salvar_anotar_numero(lista_numeros)  # Salva na lista
-
-            # Salvando número em Excel
-            self.salvar_numero_no_excel(lista_numeros[-1])  # Armazena no Excel  [-1] é para pegar o último termo adicionado
-
-        except Exception as e:
-            logging.error(f"Erro ao processar a linha {self.row_index}: {e}")
-            # Escreve o erro no arquivo txt
-            nome_paciente = self.get_excel_value('Paciente')
-            with open('numeros_guias.txt', 'a') as f:
-                f.write(f"Paciente: {nome_paciente} - Erro: {e}\n")
-            # Deixa a linha correspondente no Excel vazia ou marca como erro
-            self.salvar_numero_no_excel('')  # Salva vazio no Excel
-            # Você pode opcionalmente registrar mais detalhes ou tomar outras ações
 
 
     def lidar_com_alerta(self):
@@ -297,12 +250,14 @@ class IpasgoAutomation(BaseAutomation):
         except Exception as e:
             logging.error(f"Erro ao lidar com o alerta: {e}")
 
+
+
     def preencher_numero_carteira(self):
         """Preenche o campo 'Número da Carteira' com dados do Excel e valida o nome do beneficiário."""
         try:
             logging.info("Preenchendo o campo 'Número da Carteira'...")
             numero_carteira = self.get_excel_value('CARTEIRA')
-            nome_esperado = self.get_excel_value('Paciente')  # Ajuste se necessário
+            nome_esperado = self.get_excel_value('PACIENTE')
 
             numero_carteira_input = self.acessar_com_reattempt((By.ID, "numeroDaCarteira"))
             numero_carteira_input.send_keys(numero_carteira)
@@ -338,8 +293,8 @@ class IpasgoAutomation(BaseAutomation):
 
             carater_atendimento_input.click()
 
-            carater_atendimento_input.send_keys(Keys.ARROW_DOWN)  
-            carater_atendimento_input.send_keys(Keys.ENTER)  
+            carater_atendimento_input.send_keys(Keys.ARROW_DOWN)
+            carater_atendimento_input.send_keys(Keys.ENTER)
 
             logging.info("Campo 'Caráter do Atendimento' preenchido com sucesso.")
 
@@ -348,12 +303,11 @@ class IpasgoAutomation(BaseAutomation):
         except Exception as e:
             logging.error(f"Erro ao preencher o campo 'Caráter do Atendimento': {e}")
 
-
     def preencher_indicacao_clinica(self):
         """Preenche o campo 'Indicação Clínica' com dados do Excel."""
         try:
             logging.info("Preenchendo o campo 'Indicação Clínica'...")
-            indicacao_clinica = self.get_excel_value('indicacao_clinica')
+            indicacao_clinica = self.get_excel_value('INDICAÇAO_CLINICA')
 
             indicacao_clinica_input = self.acessar_com_reattempt((By.ID, "indicacaoClinica"))
             indicacao_clinica_input.send_keys(indicacao_clinica)
@@ -395,7 +349,7 @@ class IpasgoAutomation(BaseAutomation):
 
             time.sleep(1)
 
-            procedimento = self.get_excel_value('Status').zfill(8)  # Ajuste conforme o número de dígitos
+            procedimento = self.get_excel_value('Status').zfill(8)
 
             procedimento_input = self.acessar_com_reattempt((By.XPATH, '//*[@id="registroProcedimentoCodigo"]/input'))
 
@@ -431,7 +385,7 @@ class IpasgoAutomation(BaseAutomation):
             logging.error(f"Erro ao preencher o procedimento: {e}")
 
     def preencher_campo_profissionais(self):
-        """Mantém a implementação original desta função devido às peculiaridades do site."""
+        """Preenche os campos dos profissionais."""
         try:
             logging.info("Preenchendo campos dos profissionais...")
 
@@ -455,7 +409,7 @@ class IpasgoAutomation(BaseAutomation):
 
             time.sleep(2)
 
-            for _ in range(5):  
+            for _ in range(5):
                 grau_partic_input.send_keys(Keys.ARROW_DOWN)
                 time.sleep(0.2)
 
@@ -500,7 +454,6 @@ class IpasgoAutomation(BaseAutomation):
             else:
                 logging.warning(f"Nenhuma ação correspondente para o valor CBO: {cbo}")
 
-            
             cbo_input.send_keys(Keys.ESCAPE)
             cbo_input.send_keys(Keys.RETURN)
             logging.info("Campo 'CBO' preenchido com sucesso.")
@@ -514,7 +467,6 @@ class IpasgoAutomation(BaseAutomation):
 
         except Exception as e:
             logging.error(f"Erro ao preencher os campos dos profissionais: {e}")
-
 
     def preencher_observacao_justificativa(self):
         """Preenche o campo 'Observação/Justificativa' com dados do Excel."""
@@ -540,6 +492,7 @@ class IpasgoAutomation(BaseAutomation):
 
         except Exception as e:
             logging.error(f"Erro ao preencher o campo 'Observação/Justificativa': {e}")
+
 
     def selecionar_pedido_medico(self):
         """Seleciona o tipo de anexo usando teclas de navegação."""
@@ -570,7 +523,7 @@ class IpasgoAutomation(BaseAutomation):
             base_path = Path(r"C:\Users\joaop\OneDrive\Área de Trabalho\IPASGO")
 
             # Obtém 'Paciente' e 'CARTEIRA' da planilha Excel
-            nome_paciente = self.get_excel_value('Paciente')
+            nome_paciente = self.get_excel_value('PACIENTE')
             id_paciente = self.get_excel_value('CARTEIRA')
 
             if not nome_paciente or not id_paciente:
@@ -632,7 +585,7 @@ class IpasgoAutomation(BaseAutomation):
             tipo_anexo_dropdown.click()
             time.sleep(1)
 
-            for _ in range(9):  
+            for _ in range(10):  
                 tipo_anexo_dropdown.send_keys(Keys.ARROW_DOWN)
 
             tipo_anexo_dropdown.send_keys(Keys.RETURN)
@@ -650,7 +603,7 @@ class IpasgoAutomation(BaseAutomation):
             base_path = Path(r"C:\Users\joaop\OneDrive\Área de Trabalho\IPASGO")
 
             
-            nome_paciente = self.get_excel_value('Paciente')
+            nome_paciente = self.get_excel_value('PACIENTE')
             id_paciente = self.get_excel_value('CARTEIRA')
             
             
@@ -725,169 +678,284 @@ class IpasgoAutomation(BaseAutomation):
         try:
             logging.info("Iniciando o processo de salvar...")
 
-            
             salvar_button = self.driver.find_element(By.XPATH, '//*[@id="btnGravar"]')
 
-            
             self.driver.execute_script("arguments[0].scrollIntoView(true);", salvar_button)
             logging.info("Botão 'Salvar' rolado para a visualização.")
 
-            
             time.sleep(1)
 
-            
             salvar_button.click()
             logging.info("Botão 'Salvar' clicado com sucesso.")
 
-            
             WebDriverWait(self.driver, 10).until(
                 EC.presence_of_element_located((By.XPATH, '/html/body/div[8]/div[3]/div/button[1]'))
             )
             logging.info("Modal de confirmação detectado.")
 
-            
             confirmar_button = self.driver.find_element(By.XPATH, '/html/body/div[8]/div[3]/div/button[1]')
 
-            
             self.driver.execute_script("arguments[0].scrollIntoView(true);", confirmar_button)
             logging.info("Botão 'Sim' rolado para a visualização.")
 
-            
             time.sleep(1)
 
-           
             confirmar_button.click()
             logging.info("Botão 'Sim' clicado com sucesso.")
+
         except Exception as e:
-            logging.error(f"Erro ao tentar salvar e confirmar, tente refazer o processo: {e}")
+            logging.error(f"Erro ao tentar salvar e confirmar: {e}")
+            logging.info("Recarregando a página e passando para a próxima linha...")
+            self.driver.refresh()
+            time.sleep(5)  # Aguarda a página recarregar
+            raise e  # Levanta a exceção para ser tratada no process_row
+
 
 
     def salvar_anotar_numero(self, lista_numeros):
-        try:
-            logging.info("Iniciando o processo de captura do número da guia...")
+        max_attempts = 3  # Número máximo de tentativas
+        for attempt in range(max_attempts):
+            try:
+                logging.info(f"Iniciando o processo de captura do número da guia... Tentativa {attempt + 1} de {max_attempts}")
 
-          
-            pup_up = WebDriverWait(self.driver, 10).until(
-                EC.presence_of_element_located((By.XPATH, '/html/body/div[8]'))
-            )
-            logging.info("Pop-up localizado com sucesso.")
+                # Rola a página para o topo antes de capturar o número
+                self.driver.execute_script("window.scrollTo(0, 0);")
+                logging.info("Página rolada para o topo.")
 
-           
-            tela_dialogo = WebDriverWait(self.driver, 10).until(
-                EC.presence_of_element_located((By.XPATH, '//*[@id="ui-id-47"]'))
-            )
-            logging.info("Tela de diálogo localizada com sucesso.")
+                # Espera até que o pop-up esteja presente
+                WebDriverWait(self.driver, 30).until(
+                    EC.presence_of_element_located((By.XPATH, '/html/body/div[8]'))
+                )
+                logging.info("Pop-up localizado com sucesso.")
 
-           
-            dialogo_texto = WebDriverWait(self.driver, 10).until(
-                EC.presence_of_element_located((By.XPATH, '//*[@id="dialogText"]'))
-            )
-            logging.info("Campo de texto localizado com sucesso.")
+                # Verifica se o diálogo está presente
+                WebDriverWait(self.driver, 30).until(
+                    EC.presence_of_element_located((By.XPATH, '//*[@id="ui-id-47"]'))
+                )
+                logging.info("Tela de diálogo localizada com sucesso.")
 
-        
-            elemento_numero_guia = WebDriverWait(self.driver, 10).until(
-                EC.presence_of_element_located((By.XPATH, '//*[@id="dialogText"]/div[2]'))
-            )
-            logging.info("Elemento contendo o número da guia localizado com sucesso.")
+                # Verifica se o texto está presente
+                WebDriverWait(self.driver, 30).until(
+                    EC.presence_of_element_located((By.XPATH, '//*[@id="dialogText"]'))
+                )
+                logging.info("Campo de texto localizado com sucesso.")
 
-            
-            numero_guia_completo = elemento_numero_guia.text.strip()
+                # Obtém o elemento que contém o número da guia
+                elemento_numero_guia = WebDriverWait(self.driver, 30).until(
+                    EC.presence_of_element_located((By.XPATH, '//*[@id="dialogText"]/div[2]'))
+                )
+                logging.info("Elemento contendo o número da guia localizado com sucesso.")
 
-            
-            numero_guia = numero_guia_completo.split("Nº Guia Operadora:")[-1].strip()
-            logging.info(f"Número da Guia capturado: {numero_guia}")
+                # Extrai o número da guia
+                numero_guia_completo = elemento_numero_guia.text.strip()
+                numero_guia = numero_guia_completo.split("Nº Guia Operadora:")[-1].strip()
+                logging.info(f"Número da Guia capturado: {numero_guia}")
 
-            
-            nome_paciente = self.df['Paciente'].iloc[self.row_index]
-            logging.info(f"Nome do paciente capturado: {nome_paciente}")
+                nome_paciente = self.df['PACIENTE'].iloc[self.row_index]
+                logging.info(f"Nome do paciente capturado: {nome_paciente}")
 
-            nome_especialidade = self.df['ESPECIALIDDE'].iloc[self.row_index]
-            logging.info(f"Nome da especialidade capturada: {nome_especialidade}")
-            
-            lista_numeros.append(numero_guia)
+                nome_especialidade = self.df['ESPECIALIDDE'].iloc[self.row_index]
+                logging.info(f"Nome da especialidade capturada: {nome_especialidade}")
 
-            # Grava a lista de números e o nome do paciente em um arquivo txt (sem sobrescrever)
-            with open('numeros_guias.txt', 'a') as f: 
-                f.write(f"Paciente: {nome_paciente}  {nome_especialidade} - Nº Guia Operadora: {numero_guia}\n")
-            logging.info(f"Números das guias e nomes dos pacientes salvos no arquivo 'numeros_guias.txt'.")
+                lista_numeros.append(numero_guia)
 
-            
-            logging.info("Tentando fechar o pop-up com a tecla ESC...")
-            time.sleep(1)
-            
-            ActionChains(self.driver).send_keys(Keys.ESCAPE).perform()
-            logging.info("Tecla ESC enviada com sucesso para fechar o pop-up.")
+                # Grava a lista de números e o nome do paciente em um arquivo txt
+                try:
+                    with open('numeros_guias.txt', 'a') as f:
+                        f.write(f"Paciente: {nome_paciente}  {nome_especialidade} - Nº Guia Operadora: {numero_guia}\n")
+                    logging.info(f"Números das guias e nomes dos pacientes salvos no arquivo 'numeros_guias.txt'.")
+                except Exception as e:
+                    logging.error(f"Erro ao salvar no arquivo txt: {e}")
+                    logging.warning("Execução correta, mas falha ao preencher o arquivo txt.")
 
-        except Exception as e:
-            logging.error(f"Erro ao capturar o número da guia: {e}")
+                # Tenta salvar no Excel
+                try:
+                    self.salvar_numero_no_excel(numero_guia)
+                except Exception as e:
+                    logging.error(f"Erro ao salvar no Excel: {e}")
+                    logging.warning("Execução correta, mas falha ao preencher o Excel.")
+
+                # Fecha o pop-up pressionando ESC até que o pop-up não esteja mais presente
+                logging.info("Tentando fechar o pop-up com a tecla ESC...")
+                max_esc_attempts = 5
+                for _ in range(max_esc_attempts):
+                    ActionChains(self.driver).send_keys(Keys.ESCAPE).perform()
+                    time.sleep(1)
+                    # Verifica se o pop-up ainda está presente
+                    try:
+                        self.driver.find_element(By.XPATH, '/html/body/div[8]')
+                        logging.info("Pop-up ainda está presente, tentando fechar novamente...")
+                    except NoSuchElementException:
+                        logging.info("Pop-up fechado com sucesso.")
+                        break
+                else:
+                    logging.warning("Não foi possível fechar o pop-up após várias tentativas.")
+
+                # Rola a página para o topo após o processamento
+                self.driver.execute_script("window.scrollTo(0, 0);")
+                logging.info("Página rolada para o topo.")
+
+                # Se chegou aqui, o processo foi bem-sucedido
+                return
+
+            except Exception as e:
+                logging.error(f"Erro ao capturar o número da guia na tentativa {attempt + 1}: {e}")
+                if attempt < max_attempts - 1:
+                    logging.info("Tentando novamente capturar o número da guia...")
+                    time.sleep(2)
+                else:
+                    logging.error("Número máximo de tentativas alcançado. Não foi possível capturar o número da guia.")
+                    # Salva a mensagem de erro no txt e no Excel
+                    nome_paciente = self.get_excel_value('PACIENTE')
+                    with open('numeros_guias.txt', 'a') as f:
+                        f.write(f"Paciente: {nome_paciente} - Erro ao capturar o número da guia: {e}\n")
+                    self.salvar_numero_no_excel('')  # Salva vazio no Excel
+                    raise e  # Levanta a exceção para ser tratada no process_row
+
 
 
     def salvar_numero_no_excel(self, numero_guia):
         try:
-            logging.info("Iniciando o processo de salvamento do número no Excel usando xlwings...")
+            logging.info("Salvando o número no Excel...")
 
-            
-            file_copy_path = r"C:\Users\AUDITORIA_CLMF\Desktop\ipasgo.py\joaop\BASE_AUTORIZACAO_COPIA.xlsx"
-
-            
-            if not os.path.exists(file_copy_path):
-                logging.info("Arquivo de cópia não encontrado. Criando uma cópia do arquivo original...")
-                # Cria uma cópia do arquivo original apenas se ele ainda não existir, caso exista ele irá salvar no já existente, que possivelmente já contenha elementos de loops anteriores
-                shutil.copy(self.file_path, file_copy_path)
-                logging.info(f"Cópia criada com sucesso em {file_copy_path}.")
-            else:
-                logging.info("Cópia já existente. Usando o arquivo de cópia.")
-
-            # Abre o arquivo Excel existente com xlwings (trabalhando sempre no arquivo de cópia)
-            wb = xw.Book(file_copy_path)
+            wb = xw.Book(self.copy_file_path)
             ws = wb.sheets[self.sheet_name]
 
-            row_to_update = self.row_index + 2  
+            row_to_update = self.row_index + 2  # Ajuste para a linha correta
+            col_to_update = 'O'  # Ajuste qual coluna ele está anotando os dados
 
-            # Define a coluna onde deseja salvar o número (É referenciado a coluna segundo a letra que essa coluna pertence coluna 1 = coluna A)
-            col_to_update = 'P'  
-
-            
             ws.range(f'{col_to_update}{row_to_update}').value = numero_guia
 
-            
-            wb.save(file_copy_path)
+            wb.save(self.copy_file_path)
             wb.close()
-            logging.info(f"Número da Guia {numero_guia} salvo no arquivo de cópia na linha {row_to_update}, coluna {col_to_update}.")
-
+            logging.info(f"Número da Guia {numero_guia} salvo com sucesso no Excel.")
         except Exception as e:
-           logging.error(f"Erro ao salvar o número no Excel: {e}")
+            logging.error(f"Erro ao salvar o número no Excel: {e}")
+            logging.warning("Execução correta, mas falha ao preencher o Excel.")
+            # Opcional: Salvar mensagem de erro no Excel
+            try:
+                wb = xw.Book(self.copy_file_path)
+                ws = wb.sheets[self.sheet_name]
+                ws.range(f'{col_to_update}{row_to_update}').value = "Erro ao salvar número"
+                wb.save(self.copy_file_path)
+                wb.close()
+            except Exception as e2:
+                logging.error(f"Erro adicional ao tentar salvar mensagem de erro no Excel: {e2}")
+
 
    
 
+    def fechar_popups(self):
+        """Fecha quaisquer pop-ups que estejam abertos."""
+        try:
+            logging.info("Verificando se há pop-ups abertos...")
+            popups = self.driver.find_elements(By.XPATH, '/html/body/div[contains(@class, "ui-dialog")]')
+            for popup in popups:
+                logging.info("Pop-up detectado, tentando fechar...")
+                try:
+                    # Tenta clicar no botão de fechar
+                    close_button = popup.find_element(By.XPATH, './/button[contains(@class, "ui-dialog-titlebar-close")]')
+                    close_button.click()
+                    logging.info("Pop-up fechado com sucesso.")
+                except Exception:
+                    # Se não conseguir clicar, tenta enviar a tecla ESC
+                    ActionChains(self.driver).send_keys(Keys.ESCAPE).perform()
+                    logging.info("Tecla ESC enviada para fechar o pop-up.")
+                    time.sleep(1)
+        except Exception as e:
+            logging.error(f"Erro ao fechar pop-ups: {e}")
 
+
+
+
+    def process_row(self):
+        """Processa uma única linha do Excel."""
+        try:
+            # Verifica se há algum pop-up aberto e fecha antes de começar
+            self.fechar_popups()
+
+            # Lida com o alerta caso ele apareça
+            self.lidar_com_alerta()
+
+            # Preenche o número da carteira apenas após o alerta ser fechado
+            self.preencher_numero_carteira()
+
+            # Preenche o tipo de atendimento e quantas guias serão solicitadas
+            self.preencher_carater_atendimento()
+
+            # Preenche o campo 'Indicação Clínica'
+            self.preencher_indicacao_clinica()
+
+            # Abre a aba 'Procedimentos'
+            self.acessar_procedimentos()
+
+            # Clicando em inserir
+            self.clicar_inserir_e_preencher()
+
+            # Preenchendo campo dos profissionais
+            self.preencher_campo_profissionais()
+
+            # Abre a aba 'Observações/Justificativa'
+            self.preencher_observacao_justificativa()
+
+            # Anexa o documento
+            self.selecionar_pedido_medico()
+
+            # Clica no botão 'Escolher arquivo' e faz o upload
+            self.Anexando_RM()
+
+            # Selecionando opção de anexo
+            self.selecionar_relatorio_clinico()
+
+            # Anexo relatório clínico
+            self.Anexando_RC()
+
+            # Salvando e confirmando a solicitação
+            self.salvar_confirmar()
+
+            # Armazenando o número em uma lista para print em txt ou excel
+            lista_numeros = []  # Inicializa a lista para armazenar os números
+            self.salvar_anotar_numero(lista_numeros)  # Salva na lista
+
+        except Exception as e:
+            logging.error(f"Erro ao processar a linha {self.row_index}: {e}")
+            nome_paciente = self.get_excel_value('PACIENTE')
+            with open('numeros_guias.txt', 'a') as f:
+                f.write(f"Paciente: {nome_paciente} - Erro: {e}\n")
+            self.salvar_numero_no_excel('')  # Salva vazio no Excel
+            pass  # Continua para a próxima iteração
 
 
 
 
 if __name__ == "__main__":
-    ipasgo = IpasgoAutomation()
-    ipasgo.acessar_portal_ipasgo()
+    
+    try:
+        ipasgo = IpasgoAutomation()
+        ipasgo.acessar_portal_ipasgo()
 
 
 
-    # Valida o intervalo de linhas definido
-    max_row = len(ipasgo.df) - 1
-    if ipasgo.start_row < 0:
-        print("A linha inicial não pode ser negativa.")
-        exit(1)
-    if ipasgo.end_row > max_row:
-        print(f"A linha final não pode ser maior que {max_row}.")
-        exit(1)
-    if ipasgo.start_row > ipasgo.end_row:
-        print("A linha inicial não pode ser maior que a linha final.")
-        exit(1)
+        # Valida o intervalo de linhas definido
+        max_row = len(ipasgo.df) - 1
+        if ipasgo.start_row < 0:
+            print("A linha inicial não pode ser negativa.")
+            exit(1)
+        if ipasgo.end_row > max_row:
+            print(f"A linha final não pode ser maior que {max_row}.")
+            exit(1)
+        if ipasgo.start_row > ipasgo.end_row:
+            print("A linha inicial não pode ser maior que a linha final.")
+            exit(1)
 
-    # Processa cada linha no intervalo especificado
-    for idx in range(ipasgo.start_row, ipasgo.end_row + 1):
-        ipasgo.row_index = idx
-        logging.info(f"Iniciando o processamento da linha {idx}")
-        ipasgo.process_row()
-
-    input("Pressione qualquer tecla para fechar o navegador...")
-    ipasgo.close()
+        # Processa cada linha no intervalo especificado
+        for idx in range(ipasgo.start_row, ipasgo.end_row + 1):
+            ipasgo.row_index = idx
+            logging.info(f"Iniciando o processamento da linha {idx}")
+            ipasgo.process_row()
+    except Exception as e:
+        logging.error(f"Erro crítico: {e}")
+    finally:
+        input("Pressione qualquer tecla para fechar o navegador...")
+        ipasgo.close()
+       

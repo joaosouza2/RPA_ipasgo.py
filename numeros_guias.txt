@@ -1,2 +1,136 @@
 
 Paciente: BENJAMIM CORTES DA SILVA  PSICOLOGIA - TEA - Nº Guia Operadora: 7763927
+Paciente:  - Erro: list index out of range
+Paciente:  - Erro: list index out of range
+Paciente:  - Erro: list index out of range
+Paciente:  - Erro: list index out of range
+Paciente:  - Erro: list index out of range
+Paciente:  - Erro: list index out of range
+Paciente:  - Erro: list index out of range
+Paciente:  - Erro: list index out of range
+Paciente:  - Erro: list index out of range
+Paciente:  - Erro: list index out of range
+Paciente:  - Erro: list index out of range
+Paciente:  - Erro: list index out of range
+Paciente:  - Erro: list index out of range
+Paciente:  - Erro: list index out of range
+Paciente:  - Erro: list index out of range
+Paciente:  - Erro: list index out of range
+Paciente:  - Erro: list index out of range
+Paciente:  - Erro: list index out of range
+Paciente:  - Erro: list index out of range
+Paciente:  - Erro: list index out of range
+Paciente:  - Erro: list index out of range
+Paciente:  - Erro: list index out of range
+Paciente:  - Erro: list index out of range
+Paciente:  - Erro: list index out of range
+Paciente:  - Erro: list index out of range
+Paciente:  - Erro: list index out of range
+Paciente:  - Erro: list index out of range
+Paciente:  - Erro: list index out of range
+Paciente:  - Erro: list index out of range
+Paciente:  - Erro: list index out of range
+Paciente:  - Erro: list index out of range
+Paciente:  - Erro: list index out of range
+Paciente:  - Erro: list index out of range
+Paciente:  - Erro: 'IpasgoAutomation' object has no attribute 'fechar_popups'
+Paciente:  - Erro: 'IpasgoAutomation' object has no attribute 'fechar_popups'
+Paciente:  - Erro: 'IpasgoAutomation' object has no attribute 'fechar_popups'
+Paciente:  - Erro: 'IpasgoAutomation' object has no attribute 'fechar_popups'
+Paciente:  - Erro: 'IpasgoAutomation' object has no attribute 'fechar_popups'
+Paciente:  - Erro: 'IpasgoAutomation' object has no attribute 'fechar_popups'
+Paciente:  - Erro: 'IpasgoAutomation' object has no attribute 'fechar_popups'
+Paciente:  - Erro: 'IpasgoAutomation' object has no attribute 'fechar_popups'
+Paciente:  - Erro: 'IpasgoAutomation' object has no attribute 'fechar_popups'
+Paciente:  - Erro: 'IpasgoAutomation' object has no attribute 'fechar_popups'
+Paciente:  - Erro: 'IpasgoAutomation' object has no attribute 'fechar_popups'
+Paciente:  - Erro: 'IpasgoAutomation' object has no attribute 'fechar_popups'
+Paciente:  - Erro: 'IpasgoAutomation' object has no attribute 'fechar_popups'
+Paciente:  - Erro: 'IpasgoAutomation' object has no attribute 'fechar_popups'
+Paciente:  - Erro: 'IpasgoAutomation' object has no attribute 'fechar_popups'
+Paciente:  - Erro: 'IpasgoAutomation' object has no attribute 'fechar_popups'
+Paciente:  - Erro: 'IpasgoAutomation' object has no attribute 'fechar_popups'
+Paciente:  - Erro: 'IpasgoAutomation' object has no attribute 'fechar_popups'
+Paciente:  - Erro: 'IpasgoAutomation' object has no attribute 'fechar_popups'
+Paciente:  - Erro: 'IpasgoAutomation' object has no attribute 'fechar_popups'
+Paciente:  - Erro: 'IpasgoAutomation' object has no attribute 'fechar_popups'
+Paciente:  - Erro: 'IpasgoAutomation' object has no attribute 'fechar_popups'
+Paciente:  - Erro: 'IpasgoAutomation' object has no attribute 'fechar_popups'
+Paciente:  - Erro: 'IpasgoAutomation' object has no attribute 'fechar_popups'
+Paciente:  - Erro: 'IpasgoAutomation' object has no attribute 'fechar_popups'
+Paciente:  - Erro: 'IpasgoAutomation' object has no attribute 'fechar_popups'
+Paciente:  - Erro: 'IpasgoAutomation' object has no attribute 'fechar_popups'
+Paciente:  - Erro: 'IpasgoAutomation' object has no attribute 'fechar_popups'
+Paciente:  - Erro: 'IpasgoAutomation' object has no attribute 'fechar_popups'
+Paciente:  - Erro: 'IpasgoAutomation' object has no attribute 'fechar_popups'
+Paciente:  - Erro: 'IpasgoAutomation' object has no attribute 'fechar_popups'
+Paciente:  - Erro: 'IpasgoAutomation' object has no attribute 'fechar_popups'
+Paciente:  - Erro: 'IpasgoAutomation' object has no attribute 'fechar_popups'
+Paciente:  - Erro: 'IpasgoAutomation' object has no attribute 'fechar_popups'
+Paciente:  - Erro: 'IpasgoAutomation' object has no attribute 'fechar_popups'
+Paciente:  - Erro: 'IpasgoAutomation' object has no attribute 'fechar_popups'
+Paciente:  - Erro: 'IpasgoAutomation' object has no attribute 'fechar_popups'
+Paciente:  - Erro: 'IpasgoAutomation' object has no attribute 'fechar_popups'
+Paciente:  - Erro: 'IpasgoAutomation' object has no attribute 'fechar_popups'
+Paciente:  - Erro: 'IpasgoAutomation' object has no attribute 'fechar_popups'
+Paciente:  - Erro: 'IpasgoAutomation' object has no attribute 'fechar_popups'
+Paciente:  - Erro: 'IpasgoAutomation' object has no attribute 'fechar_popups'
+Paciente:  - Erro: 'IpasgoAutomation' object has no attribute 'fechar_popups'
+Paciente:  - Erro: 'IpasgoAutomation' object has no attribute 'fechar_popups'
+Paciente:  - Erro: 'IpasgoAutomation' object has no attribute 'fechar_popups'
+Paciente:  - Erro: 'IpasgoAutomation' object has no attribute 'fechar_popups'
+Paciente:  - Erro: 'IpasgoAutomation' object has no attribute 'fechar_popups'
+Paciente:  - Erro: 'IpasgoAutomation' object has no attribute 'fechar_popups'
+Paciente:  - Erro: 'IpasgoAutomation' object has no attribute 'fechar_popups'
+Paciente:  - Erro: 'IpasgoAutomation' object has no attribute 'fechar_popups'
+Paciente:  - Erro: 'IpasgoAutomation' object has no attribute 'fechar_popups'
+Paciente:  - Erro: 'Paciente'
+Paciente:  - Erro: 'Paciente'
+Paciente:  - Erro: Message: no such window: target window already closed
+from unknown error: web view not found
+  (Session info: chrome=129.0.6668.89)
+Stacktrace:
+	GetHandleVerifier [0x00007FF7C942B645+29573]
+	(No symbol) [0x00007FF7C93A0470]
+	(No symbol) [0x00007FF7C925B6EA]
+	(No symbol) [0x00007FF7C922FCD5]
+	(No symbol) [0x00007FF7C92DEF67]
+	(No symbol) [0x00007FF7C92F7FC1]
+	(No symbol) [0x00007FF7C92D70A3]
+	(No symbol) [0x00007FF7C92A12DF]
+	(No symbol) [0x00007FF7C92A2441]
+	GetHandleVerifier [0x00007FF7C975C58D+3375821]
+	GetHandleVerifier [0x00007FF7C97A7987+3684039]
+	GetHandleVerifier [0x00007FF7C979CDAB+3640043]
+	GetHandleVerifier [0x00007FF7C94EB7C6+816390]
+	(No symbol) [0x00007FF7C93AB77F]
+	(No symbol) [0x00007FF7C93A75A4]
+	(No symbol) [0x00007FF7C93A7740]
+	(No symbol) [0x00007FF7C939659F]
+	BaseThreadInitThunk [0x00007FFA5C8C257D+29]
+	RtlUserThreadStart [0x00007FFA5D0EAF08+40]
+
+Paciente:  - Erro: Message: no such window: target window already closed
+from unknown error: web view not found
+  (Session info: chrome=129.0.6668.89)
+Stacktrace:
+	GetHandleVerifier [0x00007FF7C942B645+29573]
+	(No symbol) [0x00007FF7C93A0470]
+	(No symbol) [0x00007FF7C925B6EA]
+	(No symbol) [0x00007FF7C922FCD5]
+	(No symbol) [0x00007FF7C92DEF67]
+	(No symbol) [0x00007FF7C92F7FC1]
+	(No symbol) [0x00007FF7C92D70A3]
+	(No symbol) [0x00007FF7C92A12DF]
+	(No symbol) [0x00007FF7C92A2441]
+	GetHandleVerifier [0x00007FF7C975C58D+3375821]
+	GetHandleVerifier [0x00007FF7C97A7987+3684039]
+	GetHandleVerifier [0x00007FF7C979CDAB+3640043]
+	GetHandleVerifier [0x00007FF7C94EB7C6+816390]
+	(No symbol) [0x00007FF7C93AB77F]
+	(No symbol) [0x00007FF7C93A75A4]
+	(No symbol) [0x00007FF7C93A7740]
+	(No symbol) [0x00007FF7C939659F]
+	BaseThreadInitThunk [0x00007FFA5C8C257D+29]
+	RtlUserThreadStart [0x00007FFA5D0EAF08+40]
+
