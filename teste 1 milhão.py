@@ -83,7 +83,7 @@ class BaseAutomation:
             if new_height == old_height:
                 break
             old_height = new_height
-        logging.info("Página estabilizada.")
+        
 
     def safe_click(self, by_locator):
         """Tenta clicar no elemento várias vezes se for interceptado."""
@@ -124,11 +124,10 @@ class IpasgoAutomation(BaseAutomation):
         self.file_path = r"C:\Users\AUDITORIA_CLMF\RPA_ipasgo.py\SOLICITACOES_AUTORIZACAO_FACPLAN.xlsx"
         self.copy_file_path = r"C:\Users\AUDITORIA_CLMF\RPA_ipasgo.py\SOLICITACOES_AUTORIZACAO_FACPLAN_COPIA.xlsx"
         self.sheet_name = 'AUTORIZACOES'
-
         self.df = pd.read_excel(
             self.file_path,
             sheet_name=self.sheet_name,
-            header=0,
+            header=0,    #linha do cabeçalho para definir nome das colunas
             engine='openpyxl'
         )
 
@@ -143,7 +142,7 @@ class IpasgoAutomation(BaseAutomation):
             logging.info("Cópia da planilha já existe.")
 
         # Definição do intervalo de linhas
-        self.start_row = 0
+        self.start_row = 3
         self.end_row = len(self.df) - 1
         self.row_index = self.start_row
 
@@ -236,7 +235,6 @@ class IpasgoAutomation(BaseAutomation):
     def lidar_com_alerta(self):
         """Lida com possíveis alertas que possam aparecer na página."""
         try:
-            logging.info("Verificando se há um alerta na página...")
             alert_present = WebDriverWait(self.driver, 10).until(
                 EC.presence_of_element_located((By.ID, "noty_top_layout_container"))
             )
@@ -245,8 +243,6 @@ class IpasgoAutomation(BaseAutomation):
                 fechar_button.click()
                 logging.info("Alerta fechado com sucesso.")
                 time.sleep(2)
-        except (TimeoutException, NoSuchElementException):
-            logging.info("Nenhum alerta foi detectado.")
         except Exception as e:
             logging.error(f"Erro ao lidar com o alerta: {e}")
 
@@ -255,7 +251,6 @@ class IpasgoAutomation(BaseAutomation):
     def preencher_numero_carteira(self):
         """Preenche o campo 'Número da Carteira' com dados do Excel e valida o nome do beneficiário."""
         try:
-            logging.info("Preenchendo o campo 'Número da Carteira'...")
             numero_carteira = self.get_excel_value('CARTEIRA')
             nome_esperado = self.get_excel_value('PACIENTE')
 
@@ -570,7 +565,7 @@ class IpasgoAutomation(BaseAutomation):
             # Clica no botão 'Adicionar'
             self.safe_click((By.XPATH, '//*[@id="upload_form"]/div/input[2]'))
 
-            time.sleep(1)
+            time.sleep(2)
 
         except Exception as e:
             logging.error(f"Erro ao fazer upload dos arquivos RM do paciente: {e}")
@@ -591,6 +586,8 @@ class IpasgoAutomation(BaseAutomation):
             tipo_anexo_dropdown.send_keys(Keys.RETURN)
             logging.info("Tipo de anexo selecionado com sucesso.")
 
+            time.sleep(1)
+            
         except Exception as e:
             logging.error(f"Erro ao selecionar o tipo de anexo: {e}")
 
@@ -712,7 +709,7 @@ class IpasgoAutomation(BaseAutomation):
 
 
 
-    def salvar_anotar_numero(self, lista_numeros):
+    def salvar_anotar_numero(self, lista_numeros): 
         max_attempts = 3  # Número máximo de tentativas
         for attempt in range(max_attempts):
             try:
@@ -720,25 +717,25 @@ class IpasgoAutomation(BaseAutomation):
 
                 # Rola a página para o topo antes de capturar o número
                 self.driver.execute_script("window.scrollTo(0, 0);")
-                
+                logging.info("Página rolada para o topo.")
 
                 # Espera até que o pop-up esteja presente
                 WebDriverWait(self.driver, 30).until(
                     EC.presence_of_element_located((By.XPATH, '/html/body/div[8]'))
                 )
-                
+                logging.info("Pop-up localizado com sucesso.")
 
                 # Verifica se o diálogo está presente
                 WebDriverWait(self.driver, 30).until(
                     EC.presence_of_element_located((By.XPATH, '//*[@id="ui-id-47"]'))
                 )
-                
+                logging.info("Tela de diálogo localizada com sucesso.")
 
                 # Verifica se o texto está presente
                 WebDriverWait(self.driver, 30).until(
                     EC.presence_of_element_located((By.XPATH, '//*[@id="dialogText"]'))
                 )
-                
+                logging.info("Campo de texto localizado com sucesso.")
 
                 # Obtém o elemento que contém o número da guia
                 elemento_numero_guia = WebDriverWait(self.driver, 30).until(
@@ -764,14 +761,23 @@ class IpasgoAutomation(BaseAutomation):
                     with open('numeros_guias.txt', 'a', encoding='utf-8') as f:
                         f.write(f"Paciente: {nome_paciente}  {nome_especialidade} - Nº Guia Operadora: {numero_guia}\n")
                     logging.info(f"Números das guias e nomes dos pacientes salvos no arquivo 'numeros_guias.txt'.")
+
+                    # Envia a tecla ESC para fechar o pop-up
+                    ActionChains(self.driver).send_keys(Keys.ESCAPE).perform()
+                    logging.info("Tecla ESC enviada para fechar o pop-up.")
+
+                    # Aguarda 5 segundos
+                    time.sleep(5)
+
+                    # Sucesso: sai do loop
+                    break
+
                 except Exception as e:
                     logging.error(f"Erro ao salvar no arquivo txt: {e}", exc_info=True)
-                    logging.warning("Execução correta, mas falha ao preencher o arquivo txt.")
-
-                
+                    logging.warning("Falha ao preencher o arquivo txt. Tentando novamente...")
 
             except Exception as e:
-                logging.error(f"Erro ao capturar o número da guia na tentativa {attempt + 1}: {e}")
+                logging.error(f"Erro ao capturar o número da guia na tentativa {attempt + 1}: {e}", exc_info=True)
                 if attempt < max_attempts - 1:
                     logging.info("Tentando novamente capturar o número da guia...")
                     time.sleep(2)
@@ -779,10 +785,11 @@ class IpasgoAutomation(BaseAutomation):
                     logging.error("Número máximo de tentativas alcançado. Não foi possível capturar o número da guia.")
                     # Salva a mensagem de erro no txt e no Excel
                     nome_paciente = self.get_excel_value('PACIENTE')
-                    with open('numeros_guias.txt', 'a') as f:
+                    with open('numeros_guias.txt', 'a', encoding='utf-8') as f:
                         f.write(f"Paciente: {nome_paciente} - Erro ao capturar o número da guia: {e}\n")
                     self.salvar_numero_no_excel('')  # Salva vazio no Excel
                     raise e  # Levanta a exceção para ser tratada no process_row
+
 
 
 
@@ -820,23 +827,13 @@ class IpasgoAutomation(BaseAutomation):
 
    
 
-    def fechar_popups(self):
-        """Fecha quaisquer pop-ups que estejam abertos."""
-        try:
-            WebDriverWait(self.driver, 10).until_not(EC.presence_of_element_located((By.XPATH, '/html/body/div[8]')))
-            logging.info("Pop-up fechado e não mais visível.")
-        except TimeoutException:
-            logging.warning("Pop-up ainda visível após esperar. Tentando enviar ESC novamente.")
-            ActionChains(self.driver).send_keys(Keys.ESCAPE).perform()
-
 
 
 
     def process_row(self):
         """Processa uma única linha do Excel."""
         try:
-            # Verifica se há algum pop-up aberto e fecha antes de começar
-            self.fechar_popups()
+            
 
             # Lida com o alerta caso ele apareça
             self.lidar_com_alerta()
@@ -885,7 +882,7 @@ class IpasgoAutomation(BaseAutomation):
             logging.error(f"Erro ao processar a linha {self.row_index}: {e}")
             nome_paciente = self.get_excel_value('PACIENTE')
             with open('numeros_guias.txt', 'a') as f:
-                f.write(f"Paciente: {nome_paciente} - Erro: {e}\n")
+                f.write(f"Paciente: {nome_paciente} - Erro\n")
             self.salvar_numero_no_excel('')  # Salva vazio no Excel
             pass  # Continua para a próxima iteração
 
