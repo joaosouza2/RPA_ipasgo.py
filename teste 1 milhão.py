@@ -119,6 +119,31 @@ class BaseAutomation:
 class IpasgoAutomation(BaseAutomation):
 
 
+    # Definição dos elementos de erro
+    ERROR_ELEMENTS = {
+        "numero_guia_do_prestador": '//*[@id="liNumGuiaPrincipalIgualNumGuiaPrestador"]',
+        "guia_principal_invalida": '//*[@id="liNumGuiaPrincipalInvalido"]',
+        "informe_o_beneficiario": '//*[@id="liBeneficiario"]',
+        "informe_se_e_atendimento_rn": '//*[@id="liAtendimentoRN"]',
+        "informe_os_dados_do_solicitante": '//*[@id="liDadosSolicitante"]',
+        "informe_o_profissional_solicitante": '//*[@id="liProfissionalSolicitante"]',
+        "informe_a_especialidade_CBO": '//*[@id="liCBO"]',
+        "informe_carater_de_atendimento": '//*[@id="liCaraterAtendimento"]',
+        "informe_a_data_de_solicitacao": '//*[@id="liDataSolicitacao"]',
+        "informe_o_PMSCO": '//*[@id="liPCMSO"]',
+        "informe_pelo_menos_um_procedimento": '//*[@id="liProcedimento"]',
+        "informe_o_contratado_executante": '//*[@id="liContratadoExecutante"]',
+        "informe_o_tipo_de_atendimento": '//*[@id="liTipoAtendimento"]',
+        "informe_o_tipo_de_consulta": '//*[@id="liTipoConsulta"]',
+        "pelo_menos_um_profissional_executante": '//*[@id="liProfissionalExecutante"]',
+        "cancele_ou_confirme_o_procedimento": '//*[@id="liGridProcedimentosEmEdicao"]',
+        "cancele_ou_confirme_profissional_executante": '//*[@id="liGridProfissionaisExecutanteEmEdicao"]',
+        "insira_documento_anexo_a_guia": '//*[@id="liObrigaAnexo"]',
+        "informe_o_numero_do_beneficiario": '//*[@id="liNumeroBeneficiario"]',
+        "informe_o_regime_de_atendimento": '//*[@id="liRegimeAtendimento"]'
+    }
+
+
     def __init__(self):
         super().__init__()
         self.file_path = r"C:\Users\SUPERVISÃO ADM\.git\RPA_ipasgo.py\SOLICITACOES_AUTORIZACAO_FACPLAN.xlsx"
@@ -145,12 +170,18 @@ class IpasgoAutomation(BaseAutomation):
 
         
         self.df.columns = [col.upper().strip() for col in self.df.columns]# Normaliza os nomes das colunas para maiúsculas
+        
+        # Adiciona a coluna 'ERRO' se não existir
+        if 'ERRO' not in self.df.columns:
+            self.df['ERRO'] = ''
+
 
         # Definição do intervalo de linhas
         self.start_row = 0
         self.end_row = len(self.df) - 1
         self.row_index = self.start_row
-
+        
+        # Definição dos elementos de erro
 
 
     def get_excel_value(self, column_name):
@@ -177,8 +208,7 @@ class IpasgoAutomation(BaseAutomation):
             senha_input.send_keys("Clmf2024")
 
             self.safe_click((By.ID, "SilkUIFramework_wt13_block_wtAction_wtLoginButton"))
-
-            logging.info("Aguardando a nova página carregar após o login...")
+       
             self.wait_for_stability(timeout=10)
 
             link_portal_webplan = self.acessar_com_reattempt((By.XPATH, "//*[@id='IpasgoTheme_wt16_block_wtMainContent_wtSistemas_ctl10_SilkUIFramework_wt36_block_wtActions_wtModulos_SilkUIFramework_wt9_block_wtContent_wtModuloPortalTable_ctl04_wt2']"))
@@ -220,7 +250,6 @@ class IpasgoAutomation(BaseAutomation):
     def acessar_guia_sadt(self):
         """Acessa o 'Guia de SP/SADT' na aba 'Guias'."""
         try:
-            logging.info("Procurando o botão 'Guia de SP/SADT'...")
             guia_sadt_button = self.acessar_com_reattempt((By.CSS_SELECTOR, ".menuLink.guia-spsadt-icon"))
             guia_sadt_button.click()
 
@@ -234,8 +263,6 @@ class IpasgoAutomation(BaseAutomation):
     def process_row(self):
         """Processando uma única linha do Excel por vez."""
         try:
-            
-
             # Lida com o alerta caso ele apareça
             self.lidar_com_alerta()
 
@@ -281,10 +308,24 @@ class IpasgoAutomation(BaseAutomation):
 
         except Exception as e:
             logging.error(f"Erro ao processar a linha {self.row_index}: {e}")
-            nome_paciente = self.get_excel_value('PACIENTE')
-            with open('numeros_guias.txt', 'a') as f:
-                f.write(f"Paciente: {nome_paciente} - Erro\n")
-            self.salvar_numero_no_excel('')  # Salva vazio no Excel
+            try:
+                nome_paciente = self.df['PACIENTE'].iloc[self.row_index]
+            except KeyError:
+                nome_paciente = 'Nome do paciente não encontrado'
+
+            # Salva a mensagem de erro no arquivo txt
+            current_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            with open('numeros_guias.txt', 'a', encoding='utf-8') as f:
+                f.write(f"{current_time} - Paciente: {nome_paciente} - Erro ao processar a linha: {e}\n")
+
+            # Salva uma entrada de erro no CSV
+            self.salvar_numero_no_csv(lista_erros=f"Erro: {e}")
+
+            # Aguarda 5 segundos
+            time.sleep(5)
+
+            # Passa para a próxima linha sem recarregar novamente
+            logging.info("Passando para a próxima linha após erro.")
             pass  # Continua para a próxima iteração
 
 
@@ -305,7 +346,7 @@ class IpasgoAutomation(BaseAutomation):
 
     def preencher_numero_carteira(self):
         """Preenche o campo 'Número da Carteira' com dados do Excel e valida o nome do beneficiário."""
-        try:
+        try:    
             numero_carteira = self.get_excel_value('CARTEIRA')
             nome_esperado = self.get_excel_value('PACIENTE')
 
@@ -334,6 +375,8 @@ class IpasgoAutomation(BaseAutomation):
         except Exception as e:
             logging.error(f"Erro ao preencher o campo 'Número da Carteira': {e}")
 
+
+
     def preencher_carater_atendimento(self):
         try:
 
@@ -349,6 +392,8 @@ class IpasgoAutomation(BaseAutomation):
         except Exception as e:
             logging.error(f"Erro ao preencher o campo 'Caráter do Atendimento': {e}")
 
+
+
     def preencher_indicacao_clinica(self):
         """Preenche o campo 'Indicação Clínica' com dados do Excel."""
         try:
@@ -362,6 +407,8 @@ class IpasgoAutomation(BaseAutomation):
 
         except Exception as e:
             logging.error(f"Erro ao preencher o campo 'Indicação Clínica': {e}")
+
+
 
     def acessar_procedimentos(self):
         """Clica no campo 'Procedimentos' para abrir a aba, garantindo que ele esteja visível."""
@@ -379,6 +426,8 @@ class IpasgoAutomation(BaseAutomation):
 
         except Exception as e:
             logging.error(f"Erro ao abrir a aba 'Procedimentos': {e}")
+
+
 
     def clicar_inserir_e_preencher(self):
         """Clica no botão 'Inserir Procedimento' e preenche o campo subsequente com dados do Excel."""
@@ -406,11 +455,9 @@ class IpasgoAutomation(BaseAutomation):
             total_input.clear()
             total_input.send_keys(total)
 
-            time.sleep(2)
+            time.sleep(1)
 
             total_input.send_keys(Keys.RETURN)
-
-            time.sleep(3)
 
             logging.info(f"Campo 'QUANTIDADE' preenchido com sucesso com o valor: {total}")
 
@@ -418,10 +465,12 @@ class IpasgoAutomation(BaseAutomation):
 
             confirmar_button.click()
 
-            time.sleep(2)
+            time.sleep(1)
 
         except Exception as e:
             logging.error(f"Erro ao preencher o procedimento: {e}")
+
+
 
     def preencher_campo_profissionais(self):
         """Preenche os campos dos profissionais."""
@@ -500,6 +549,8 @@ class IpasgoAutomation(BaseAutomation):
         except Exception as e:
             logging.error(f"Erro ao preencher os campos dos profissionais: {e}")
 
+
+
     def preencher_observacao_justificativa(self):
         """Preenche o campo 'Observação/Justificativa' com dados do Excel."""
         try:
@@ -522,6 +573,7 @@ class IpasgoAutomation(BaseAutomation):
 
         except Exception as e:
             logging.error(f"Erro ao preencher o campo 'Observação/Justificativa': {e}")
+
 
 
     def selecionar_pedido_medico(self):
@@ -601,6 +653,7 @@ class IpasgoAutomation(BaseAutomation):
 
         except Exception as e:
             logging.error(f"Erro ao fazer upload dos arquivos RM do paciente: {e}")
+
 
 
     def selecionar_relatorio_clinico(self):
@@ -701,34 +754,91 @@ class IpasgoAutomation(BaseAutomation):
 
     def salvar_confirmar(self):
         try:
-
             salvar_button = self.driver.find_element(By.XPATH, '//*[@id="btnGravar"]')
-
             self.driver.execute_script("arguments[0].scrollIntoView(true);", salvar_button)
-
             time.sleep(1)
-
             salvar_button.click()
 
+            # Espera pelo modal de confirmação
             WebDriverWait(self.driver, 10).until(
                 EC.presence_of_element_located((By.XPATH, '/html/body/div[8]/div[3]/div/button[1]'))
             )
             logging.info("Modal de confirmação detectado.")
 
             confirmar_button = self.driver.find_element(By.XPATH, '/html/body/div[8]/div[3]/div/button[1]')
-
             self.driver.execute_script("arguments[0].scrollIntoView(true);", confirmar_button)
-
             time.sleep(1)
-
             confirmar_button.click()
+
+            # Definir os elementos de erro
+            errors_found = []
+            for error_name, error_xpath in self.ERROR_ELEMENTS.items():
+                try:
+                    elemento = self.driver.find_element(By.XPATH, error_xpath)
+                    if elemento.is_displayed():
+                        erro_texto = elemento.text.strip()
+                        errors_found.append(f"{error_name}: {erro_texto}")
+                        logging.warning(f"Erro detectado - {error_name}: {erro_texto}")
+                except NoSuchElementException:
+                    # Elemento de erro não encontrado; continue
+                    continue
+
+            if errors_found:
+                # Obtem o nome do paciente
+                try:
+                    nome_paciente = self.df['PACIENTE'].iloc[self.row_index]
+                except KeyError:
+                    nome_paciente = 'Nome do paciente não encontrado'
+
+                # Formatar a mensagem de erro
+                erros_formatados = "; ".join(errors_found)
+
+                # Salvar no arquivo TXT
+                current_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                with open('numeros_guias.txt', 'a', encoding='utf-8') as f:
+                    f.write(f"{current_time} - Paciente: {nome_paciente} - Erros: {erros_formatados}\n")
+
+                logging.info(f"Erros salvos no arquivo 'numeros_guias.txt': {erros_formatados}")
+
+                # Salvar no CSV
+                self.salvar_numero_no_csv(lista_erros=erros_formatados)
+
+                # Aguardar 5 segundos
+                time.sleep(5)
+
+                # Recarregar a página
+                self.driver.refresh()
+                logging.info("Página recarregada devido aos erros encontrados.")
+
+                # Passar para a próxima linha será gerenciado no 'process_row'
+                return  # Sai da função para que o 'process_row' possa continuar
 
         except Exception as e:
             logging.error(f"Erro ao tentar salvar e confirmar: {e}")
-            logging.info("Recarregando a página e passando para a próxima linha...")
+            # Salvar a mensagem de erro no TXT e CSV
+            try:
+                nome_paciente = self.df['PACIENTE'].iloc[self.row_index]
+            except KeyError:
+                nome_paciente = 'Nome do paciente não encontrado'
+
+            current_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            erro_texto = f"Erro ao salvar e confirmar: {e}"
+            with open('numeros_guias.txt', 'a', encoding='utf-8') as f:
+                f.write(f"{current_time} - Paciente: {nome_paciente} - {erro_texto}\n")
+
+            # Salvar no CSV com o erro
+            self.salvar_numero_no_csv(lista_erros=erro_texto)
+
+            # Aguardar 5 segundos
+            time.sleep(5)
+
+            # Recarregar a página
             self.driver.refresh()
-            time.sleep(5)  # Aguarda a página recarregar
-            raise e  # Levanta a exceção para ser tratada no process_row
+            logging.info("Página recarregada devido a erro inesperado.")
+
+            # Levanta a exceção para ser tratada no process_row
+            raise e
+
 
 
 
@@ -774,7 +884,7 @@ class IpasgoAutomation(BaseAutomation):
 
                 lista_numeros.append(numero_guia)
                 time.sleep(1)
-
+                self.salvar_numero_no_csv(lista_numeros)    
                 # Grava a lista de números e o nome do paciente em um arquivo txt
                 try:
                     current_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
@@ -800,36 +910,58 @@ class IpasgoAutomation(BaseAutomation):
                     time.sleep(2)
                 else:
                     logging.error("Número máximo de tentativas alcançado. Não foi possível capturar o número da guia.")
-                    # Salva a mensagem de erro no txt e no Excel
-                    nome_paciente = self.get_excel_value('PACIENTE')
+                    # Salva a mensagem de erro no txt e no CSV
+                    try:
+                        # Obtem o nome do paciente a partir do DataFrame
+                        nome_paciente = self.df['PACIENTE'].iloc[self.row_index]
+                    except KeyError:
+                        nome_paciente = 'Nome do paciente não encontrado'
+                    
+                    # Escreve a mensagem de erro no arquivo txt
                     with open('numeros_guias.txt', 'a', encoding='utf-8') as f:
                         f.write(f"Paciente: {nome_paciente} - Erro ao capturar o número da guia: {e}\n")
-                    self.salvar_numero_no_csv()  # Salva vazio no Excel
-                    raise e  # Levanta a exceção para ser tratada no process_row
+                    
+                    lista_numeros.append('')
+                    
+
+                    self.salvar_numero_no_csv(lista_numeros)
+                    raise e
 
 
 
 
-    def salvar_numero_no_csv(self, numero_guia):
+    def salvar_numero_no_csv(self, lista_erros=None):
         try:
-            col_name = 'GUIA_COD'  #  Este é o nome exato da coluna
+            col_name = 'GUIA_COD'  # Este é o nome exato da coluna
+            erro_col_name = 'ERRO'  # Nova coluna para erros
 
-            
+            # Verifica se a coluna 'GUIA_COD' existe; se não, cria
             if col_name not in self.df.columns:
-                # Se a coluna [col_name] não existir, adiciona a coluna ao DataFrame
                 self.df[col_name] = ''
 
-            self.df.at[self.row_index, col_name] = numero_guia
+            # Verifica se a coluna 'ERRO' existe; se não, cria
+            if erro_col_name not in self.df.columns:
+                self.df[erro_col_name] = ''
 
+            # Atualiza o DataFrame na linha atual
+            if lista_erros:
+                # Indica que houve um erro
+                self.df.at[self.row_index, col_name] = 'ERRO'
+                self.df.at[self.row_index, erro_col_name] = lista_erros
+                logging.info(f"Erro salvo no CSV na coluna '{erro_col_name}': {lista_erros}")
+            else:
+                # Caso contrário, salva o número da guia normalmente
+                numero_guia = 'SUCESSO'  # Ou o valor correspondente
+                self.df.at[self.row_index, col_name] = numero_guia
+                self.df.at[self.row_index, erro_col_name] = ''
+                logging.info(f"Número da Guia '{numero_guia}' salvo com sucesso no CSV na coluna '{col_name}'.")
+
+            # Salva o DataFrame de volta no arquivo CSV
             self.df.to_csv(self.copy_file_path, index=False, encoding='utf-8')
 
-            logging.info(f"Número da Guia {numero_guia} salvo com sucesso no CSV na coluna '{col_name}'.")
-
         except Exception as e:
-            logging.error(f"Erro ao salvar o número no CSV: {e}", exc_info=True)
+            logging.error(f"Erro ao salvar no CSV: {e}", exc_info=True)
             logging.warning("Execução correta, mas falha ao preencher o CSV.")
-
-
 
 if __name__ == "__main__":
     
