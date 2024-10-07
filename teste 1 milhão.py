@@ -759,7 +759,6 @@ class IpasgoAutomation(BaseAutomation):
             time.sleep(1)
             salvar_button.click()
 
-            # Espera pelo modal de confirmação
             WebDriverWait(self.driver, 10).until(
                 EC.presence_of_element_located((By.XPATH, '/html/body/div[8]/div[3]/div/button[1]'))
             )
@@ -780,7 +779,6 @@ class IpasgoAutomation(BaseAutomation):
                         errors_found.append(f"{error_name}: {erro_texto}")
                         logging.warning(f"Erro detectado - {error_name}: {erro_texto}")
                 except NoSuchElementException:
-                    # Elemento de erro não encontrado; continue
                     continue
 
             if errors_found:
@@ -800,18 +798,14 @@ class IpasgoAutomation(BaseAutomation):
 
                 logging.info(f"Erros salvos no arquivo 'numeros_guias.txt': {erros_formatados}")
 
-                # Salvar no CSV
-                self.salvar_numero_no_csv(lista_erros=erros_formatados)
-
-                # Aguardar 5 segundos
+                self.salvar_numero_no_csv(lista_erros=erros_formatados)# Salvar no CSV
+            
                 time.sleep(5)
 
-                # Recarregar a página
-                self.driver.refresh()
+                self.driver.refresh()# Recarregar a página
                 logging.info("Página recarregada devido aos erros encontrados.")
 
-                # Passar para a próxima linha será gerenciado no 'process_row'
-                return  # Sai da função para que o 'process_row' possa continuar
+                return  # Sai da função para que o 'process_row' possa continuar gerenciando a troca de linha ao final do código
 
         except Exception as e:
             logging.error(f"Erro ao tentar salvar e confirmar: {e}")
@@ -848,25 +842,20 @@ class IpasgoAutomation(BaseAutomation):
             try:
                 logging.info(f"Iniciando o processo de captura do número da guia... Tentativa {attempt + 1} de {max_attempts}")
 
-                # Rola a página para o topo antes de capturar o número
                 self.driver.execute_script("window.scrollTo(0, 0);")
 
-                # Espera até que o pop-up esteja presente
                 WebDriverWait(self.driver, 30).until(
                     EC.presence_of_element_located((By.XPATH, '/html/body/div[8]'))
                 )
-
-                # Verifica se o diálogo está presente
+                
                 WebDriverWait(self.driver, 30).until(
                     EC.presence_of_element_located((By.XPATH, '//*[@id="ui-id-47"]'))
                 )
-
-                # Verifica se o texto está presente
+                
                 WebDriverWait(self.driver, 30).until(
                     EC.presence_of_element_located((By.XPATH, '//*[@id="dialogText"]'))
                 )
-
-                # Obtém o elemento que contém o número da guia
+                
                 elemento_numero_guia = WebDriverWait(self.driver, 30).until(
                     EC.presence_of_element_located((By.XPATH, '//*[@id="dialogText"]/div[2]'))
                 )
@@ -897,7 +886,7 @@ class IpasgoAutomation(BaseAutomation):
 
                     time.sleep(5)
 
-                    # Sucesso: sai do loop
+                    
                     break
 
                 except Exception as e:
@@ -912,7 +901,7 @@ class IpasgoAutomation(BaseAutomation):
                     logging.error("Número máximo de tentativas alcançado. Não foi possível capturar o número da guia.")
                     # Salva a mensagem de erro no txt e no CSV
                     try:
-                        # Obtem o nome do paciente a partir do DataFrame
+                        
                         nome_paciente = self.df['PACIENTE'].iloc[self.row_index]
                     except KeyError:
                         nome_paciente = 'Nome do paciente não encontrado'
@@ -935,29 +924,26 @@ class IpasgoAutomation(BaseAutomation):
             col_name = 'GUIA_COD'  # Este é o nome exato da coluna
             erro_col_name = 'ERRO'  # Nova coluna para erros
 
-            # Verifica se a coluna 'GUIA_COD' existe; se não, cria
-            if col_name not in self.df.columns:
-                self.df[col_name] = ''
 
-            # Verifica se a coluna 'ERRO' existe; se não, cria
-            if erro_col_name not in self.df.columns:
+            if col_name not in self.df.columns: # Verifica se a coluna 'GUIA_COD' existe; se não, cria
+                self.df[col_name] = ''
+            if erro_col_name not in self.df.columns: # Verifica se a coluna 'ERRO' existe; se não, cria
                 self.df[erro_col_name] = ''
+
+            numero_guia = self.df.at[self.row_index, col_name] #lê o valor N* guia antes de inserir
 
             # Atualiza o DataFrame na linha atual
             if lista_erros:
-                # Indica que houve um erro
                 self.df.at[self.row_index, col_name] = 'ERRO'
                 self.df.at[self.row_index, erro_col_name] = lista_erros
                 logging.info(f"Erro salvo no CSV na coluna '{erro_col_name}': {lista_erros}")
             else:
-                # Caso contrário, salva o número da guia normalmente
-                numero_guia = 'SUCESSO'  # Ou o valor correspondente
+                numero_guia = 'SUCESSO' # Caso contrário, salva o número da guia normalmente, ou o valor correspondente
                 self.df.at[self.row_index, col_name] = numero_guia
                 self.df.at[self.row_index, erro_col_name] = ''
                 logging.info(f"Número da Guia '{numero_guia}' salvo com sucesso no CSV na coluna '{col_name}'.")
 
-            # Salva o DataFrame de volta no arquivo CSV
-            self.df.to_csv(self.copy_file_path, index=False, encoding='utf-8')
+            self.df.to_csv(self.copy_file_path, index=False, encoding='utf-8') # Salva o DataFrame de volta no arquivo CSV
 
         except Exception as e:
             logging.error(f"Erro ao salvar no CSV: {e}", exc_info=True)
