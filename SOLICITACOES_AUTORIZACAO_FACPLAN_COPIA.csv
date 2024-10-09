@@ -1,27 +1,27 @@
 CARTEIRINHA,COD. PACIENTE,PACIENTE,PAGAMENTO,DATA,HORA INICIAL,ESPECIALIDADE,CARTEIRA,STATUS,TOTAL,COD_PROFISSIONAL,CBO,INDICACAO_CLINICA,JUSTIFICATIVA,GUIA_COD,OBS,COLUNA1,COLUNA2,COLUNA3,ERRO
-6673.9004.2,3590,AGNES RODRIGUES CARNEIRO,IPASGO - TEA,2024-12-16,07:00:00,FONOAUDIOLOGIA - TEA,667390042,11185,3,48113-0,223810,CID - F840,"AUTORIZAÇÃO MENSAL  - Relativo atendimentos do período 16/09/2024 a 30/09/2024  anexo relatório médico e relatório Clínico, ",ERRO,,,,,"Erro: Message: 
+6673.9004.2,3590,AGNES RODRIGUES CARNEIRO,IPASGO - TEA,2024-12-16,07:00:00,FONOAUDIOLOGIA - TEA,667390042,11185,3,48113-0,223810,CID - F840,"AUTORIZAÇÃO MENSAL  - Relativo atendimentos do período 16/09/2024 a 30/09/2024  anexo relatório médico e relatório Clínico, ",ERRO,,,,,"Erro ao salvar e confirmar: Message: no such window: target window already closed
+from unknown error: web view not found
+  (Session info: chrome=129.0.6668.90)
 Stacktrace:
-	GetHandleVerifier [0x00007FF69A63B645+29573]
-	(No symbol) [0x00007FF69A5B0470]
-	(No symbol) [0x00007FF69A46B6EA]
-	(No symbol) [0x00007FF69A4BF815]
-	(No symbol) [0x00007FF69A4BFA6C]
-	(No symbol) [0x00007FF69A50B917]
-	(No symbol) [0x00007FF69A4E733F]
-	(No symbol) [0x00007FF69A5086BC]
-	(No symbol) [0x00007FF69A4E70A3]
-	(No symbol) [0x00007FF69A4B12DF]
-	(No symbol) [0x00007FF69A4B2441]
-	GetHandleVerifier [0x00007FF69A96C58D+3375821]
-	GetHandleVerifier [0x00007FF69A9B7987+3684039]
-	GetHandleVerifier [0x00007FF69A9ACDAB+3640043]
-	GetHandleVerifier [0x00007FF69A6FB7C6+816390]
-	(No symbol) [0x00007FF69A5BB77F]
-	(No symbol) [0x00007FF69A5B75A4]
-	(No symbol) [0x00007FF69A5B7740]
-	(No symbol) [0x00007FF69A5A659F]
-	BaseThreadInitThunk [0x00007FFEAFE9257D+29]
-	RtlUserThreadStart [0x00007FFEB11CAF28+40]
+	GetHandleVerifier [0x00007FF6920AB095+29557]
+	(No symbol) [0x00007FF69201FA50]
+	(No symbol) [0x00007FF691EDB56A]
+	(No symbol) [0x00007FF691EAFCC5]
+	(No symbol) [0x00007FF691F5EE07]
+	(No symbol) [0x00007FF691F77E21]
+	(No symbol) [0x00007FF691F56F33]
+	(No symbol) [0x00007FF691F2116F]
+	(No symbol) [0x00007FF691F222D1]
+	GetHandleVerifier [0x00007FF6923DC96D+3378253]
+	GetHandleVerifier [0x00007FF692428497+3688311]
+	GetHandleVerifier [0x00007FF69241D1CB+3642539]
+	GetHandleVerifier [0x00007FF69216A6B6+813462]
+	(No symbol) [0x00007FF69202AB5F]
+	(No symbol) [0x00007FF692026B74]
+	(No symbol) [0x00007FF692026D10]
+	(No symbol) [0x00007FF692015C1F]
+	BaseThreadInitThunk [0x00007FF9619C257D+29]
+	RtlUserThreadStart [0x00007FF963C4AF08+40]
 "
 6673.9004.2,3590,AGNES RODRIGUES CARNEIRO,IPASGO - TEA,2024-12-16,09:00:00,PSICOLOGIA - TEA,667390042,11193,3,48155-0,251510,CID - F840,"AUTORIZAÇÃO MENSAL  - Relativo atendimentos do período 16/09/2024 a 30/09/2024  anexo relatório médico e relatório Clínico, ",ERRO,,,,,"Erro: Message: no such window: target window already closed
 from unknown error: web view not found

@@ -15,6 +15,9 @@ import re
 from pathlib import Path
 import shutil
 import datetime
+import tkinter as tk
+from tkinter import filedialog
+from tkinter import messagebox
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
@@ -207,7 +210,7 @@ class IpasgoAutomation(BaseAutomation):
             senha_input = self.acessar_com_reattempt((By.ID, "SilkUIFramework_wt13_block_wtPassword_wtPasswordInput"))
             senha_input.send_keys("Clmf2024")
 
-            self.safe_click((By.ID, "SilkUIFramework_wt13_block_wtAction_wtLoginButton"))
+            self.safe_click((By.ID, "SilkUIFramework_wt13_block_wtAction_wtLoginButton"))   
        
             self.wait_for_stability(timeout=10)
 
@@ -950,33 +953,88 @@ class IpasgoAutomation(BaseAutomation):
             logging.warning("Execução correta, mas falha ao preencher o CSV.")
 
 if __name__ == "__main__":
-    
     try:
-        ipasgo = IpasgoAutomation()
-        ipasgo.acessar_portal_ipasgo()
+        # Create the GUI window
+        root = tk.Tk()
+        root.title("Automação de Solicitações IPASGO")
 
+        # Define variables to store user inputs
+        login_var = tk.StringVar()
+        password_var = tk.StringVar()
+        start_row_var = tk.StringVar()
+        end_row_var = tk.StringVar()
 
+        # Create labels and entry fields
+        tk.Label(root, text="Login IPASGO").grid(row=0, column=0, padx=10, pady=5)
+        login_entry = tk.Entry(root, textvariable=login_var)
+        login_entry.grid(row=0, column=1, padx=10, pady=5)
 
-        # Valida o intervalo de linhas definido
-        max_row = len(ipasgo.df) - 1
-        if ipasgo.start_row < 0:
-            print("A linha inicial não pode ser negativa.")
-            exit(1)
-        if ipasgo.end_row > max_row:
-            print(f"A linha final não pode ser maior que {max_row}.")
-            exit(1)
-        if ipasgo.start_row > ipasgo.end_row:
-            print("A linha inicial não pode ser maior que a linha final.")
-            exit(1)
+        tk.Label(root, text="Senha IPASGO").grid(row=1, column=0, padx=10, pady=5)
+        password_entry = tk.Entry(root, textvariable=password_var, show="*")
+        password_entry.grid(row=1, column=1, padx=10, pady=5)
 
-        # Processa cada linha no intervalo especificado
-        for idx in range(ipasgo.start_row, ipasgo.end_row + 1):
-            ipasgo.row_index = idx
-            logging.info(f"Iniciando o processamento da linha {idx}")
-            ipasgo.process_row()
+        tk.Label(root, text="Linha inicial do Excel").grid(row=2, column=0, padx=10, pady=5)
+        start_row_entry = tk.Entry(root, textvariable=start_row_var)
+        start_row_entry.grid(row=2, column=1, padx=10, pady=5)
+
+        tk.Label(root, text="Linha final do Excel").grid(row=3, column=0, padx=10, pady=5)
+        end_row_entry = tk.Entry(root, textvariable=end_row_var)
+        end_row_entry.grid(row=3, column=1, padx=10, pady=5)
+
+        # Function to start the automation process
+        def iniciar_processo():
+            login = login_var.get()
+            password = password_var.get()
+            start_row = start_row_var.get()
+            end_row = end_row_var.get()
+
+            if not login or not password or not start_row or not end_row:
+                messagebox.showerror("Erro", "Por favor, preencha todos os campos.")
+                return
+
+            # Convert start_row and end_row to integers
+            try:
+                start_row = int(start_row)
+                end_row = int(end_row)
+            except ValueError:
+                messagebox.showerror("Erro", "As linhas inicial e final devem ser números inteiros.")
+                return
+
+            # Close the GUI window
+            root.destroy()
+
+            # Initialize the automation class with user inputs
+            ipasgo = IpasgoAutomation()
+            ipasgo.acessar_portal_ipasgo()
+
+            # Validate the range of rows defined
+            max_row = len(ipasgo.df) - 1
+            if ipasgo.start_row < 0:
+                print("A linha inicial não pode ser negativa.")
+                return
+            if ipasgo.end_row > max_row:
+                print(f"A linha final não pode ser maior que {max_row}.")
+                return
+            if ipasgo.start_row > ipasgo.end_row:
+                print("A linha inicial não pode ser maior que a linha final.")
+                return
+
+            # Process each row in the specified range
+            for idx in range(ipasgo.start_row, ipasgo.end_row + 1):
+                ipasgo.row_index = idx
+                logging.info(f"Iniciando o processamento da linha {idx}")
+                ipasgo.process_row()
+
+            input("Pressione qualquer tecla para fechar o navegador...")
+            ipasgo.close()
+
+        # Create the "Iniciar" button
+        iniciar_button = tk.Button(root, text="Iniciar", command=iniciar_processo)
+        iniciar_button.grid(row=4, column=0, columnspan=2, pady=10)
+
+        # Start the GUI loop
+        root.mainloop()
+
     except Exception as e:
         logging.error(f"Erro crítico: {e}")
-    finally:
-        input("Pressione qualquer tecla para fechar o navegador...")
-        ipasgo.close()
        

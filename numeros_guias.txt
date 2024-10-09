@@ -9263,3 +9263,27 @@ Stacktrace:
 	BaseThreadInitThunk [0x00007FFEAFE9257D+29]
 	RtlUserThreadStart [0x00007FFEB11CAF28+40]
 
+2024-10-09 17:24:13 - Paciente: AGNES RODRIGUES CARNEIRO - Erro ao salvar e confirmar: Message: no such window: target window already closed
+from unknown error: web view not found
+  (Session info: chrome=129.0.6668.90)
+Stacktrace:
+	GetHandleVerifier [0x00007FF6920AB095+29557]
+	(No symbol) [0x00007FF69201FA50]
+	(No symbol) [0x00007FF691EDB56A]
+	(No symbol) [0x00007FF691EAFCC5]
+	(No symbol) [0x00007FF691F5EE07]
+	(No symbol) [0x00007FF691F77E21]
+	(No symbol) [0x00007FF691F56F33]
+	(No symbol) [0x00007FF691F2116F]
+	(No symbol) [0x00007FF691F222D1]
+	GetHandleVerifier [0x00007FF6923DC96D+3378253]
+	GetHandleVerifier [0x00007FF692428497+3688311]
+	GetHandleVerifier [0x00007FF69241D1CB+3642539]
+	GetHandleVerifier [0x00007FF69216A6B6+813462]
+	(No symbol) [0x00007FF69202AB5F]
+	(No symbol) [0x00007FF692026B74]
+	(No symbol) [0x00007FF692026D10]
+	(No symbol) [0x00007FF692015C1F]
+	BaseThreadInitThunk [0x00007FF9619C257D+29]
+	RtlUserThreadStart [0x00007FF963C4AF08+40]
+
