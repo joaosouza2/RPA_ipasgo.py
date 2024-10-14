@@ -1,0 +1,92 @@
+import logging
+from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+import time
+
+# Configuração de logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+
+class BaseAutomation:
+    def __init__(self):
+        """Configurações gerais do WebDriver."""
+        self.options = Options()
+        self.options.add_argument("--start-maximized")  # Maximiza a janela
+        self.driver = webdriver.Chrome(options=self.options)  # Inicializa o WebDriver com a opção de maximização
+
+    def wait_for_stability(self, timeout=10):
+        """Método auxiliar para esperar a página carregar completamente."""
+        logging.info("Esperando a página carregar completamente.")
+        WebDriverWait(self.driver, timeout).until(
+            lambda d: d.execute_script('return document.readyState') == 'complete'
+        )
+
+    def acessar_com_reattempt(self, locator, retries=3, timeout=10):
+        """Tenta acessar um elemento com várias tentativas."""
+        for i in range(retries):
+            try:
+                logging.info(f"Tentando acessar o elemento: {locator}, Tentativa: {i+1}")
+                return WebDriverWait(self.driver, timeout).until(
+                    EC.presence_of_element_located(locator)
+                )
+            except Exception as e:
+                logging.warning(f"Tentativa {i + 1} falhou: {e}")
+                time.sleep(1)
+        logging.error(f"Falha ao acessar o elemento: {locator} após {retries} tentativas.")
+        raise Exception("Não foi possível localizar o elemento após várias tentativas")
+
+    def safe_click(self, locator):
+        """Clica em um elemento de forma segura."""
+        logging.info(f"Clicando no elemento: {locator}")
+        elemento = self.acessar_com_reattempt(locator)
+        elemento.click()
+
+    def acessar_portal_ipasgo(self):
+        """Executa o fluxo principal do IPASGO."""
+        try:
+            logging.info("Abrindo o portal do IPASGO.")
+            self.driver.get("https://portalos.ipasgo.go.gov.br/Portal_Dominio/PrestadorLogin.aspx")
+            self.wait_for_stability(timeout=10)
+            
+            time.sleep(2)
+
+            logging.info("Preenchendo o campo de matrícula.")
+            matricula_input = self.acessar_com_reattempt((By.ID, "SilkUIFramework_wt13_block_wtUsername_wtUserNameInput2"))
+            matricula_input.send_keys("14898500")
+
+            logging.info("Preenchendo o campo de senha.")
+            senha_input = self.acessar_com_reattempt((By.ID, "SilkUIFramework_wt13_block_wtPassword_wtPasswordInput"))
+            senha_input.send_keys("Clmf2024")
+
+            time.sleep(0.5)
+
+            logging.info("Clicando no botão de login.")
+            self.safe_click((By.ID, "SilkUIFramework_wt13_block_wtAction_wtLoginButton"))
+            self.wait_for_stability(timeout=10)
+            
+
+            time.sleep(1)
+
+            logging.info("Acessando o portal WebPlan.")
+            link_portal_webplan = self.acessar_com_reattempt((By.XPATH, "//*[@id='IpasgoTheme_wt16_block_wtMainContent_wtSistemas_ctl10_SilkUIFramework_wt36_block_wtActions_wtModulos_SilkUIFramework_wt9_block_wtContent_wtModuloPortalTable_ctl04_wt2']"))
+            self.driver.execute_script("arguments[0].scrollIntoView(true);", link_portal_webplan)
+            link_portal_webplan.click()
+
+            logging.info("Esperando a abertura de uma nova janela.")
+            WebDriverWait(self.driver, 20).until(EC.number_of_windows_to_be(2))
+            self.driver.switch_to.window(self.driver.window_handles[1])
+
+            logging.info("Acessando o menu principal.")
+            self.acessar_com_reattempt((By.ID, "menuPrincipal"))
+
+            time.sleep(20)
+
+        except Exception as e:
+            logging.error(f"Erro ao acessar o site ou preencher o formulário: {e}")
+
+# Exemplo de execução
+if __name__ == "__main__":
+    automacao = BaseAutomation()
+    automacao.acessar_portal_ipasgo()
