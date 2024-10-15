@@ -173,6 +173,10 @@ class IpasgoAutomation(BaseAutomation):
         # Adiciona a coluna 'ERRO' se não existir
         if 'ERRO' not in self.df.columns:
             self.df['ERRO'] = ''
+            
+        #adiciona a coluna GUIA_COD para armazenar os numeros das guias soclitadas 
+        if 'GUIA_COD' not in self.df.columns:
+            self.df['GUIA_COD'] = ''
 
         #incializa pelo indice de linha atual
         self.row_index = self.start_row
