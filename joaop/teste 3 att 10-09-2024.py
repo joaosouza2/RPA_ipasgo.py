@@ -76,6 +76,7 @@ class BaseAutomation:
         self.options = Options()
         self.options.add_argument("--start-maximized")
         self.driver = webdriver.Chrome(options=self.options)
+                       
 
     def wait_for_stability(self, timeout=10, check_interval=1):
         """Espera pela estabilidade da altura da página."""
@@ -121,7 +122,6 @@ class BaseAutomation:
 
 class IpasgoAutomation(BaseAutomation):
 
-
     # Definição dos elementos de erro
     ERROR_ELEMENTS = {
         "numero_guia_do_prestador": '//*[@id="liNumGuiaPrincipalIgualNumGuiaPrestador"]',
@@ -146,9 +146,15 @@ class IpasgoAutomation(BaseAutomation):
         "informe_o_regime_de_atendimento": '//*[@id="liRegimeAtendimento"]'
     }
 
-
-    def __init__(self):
+    def __init__(self, login, password, start_row, end_row):
         super().__init__()
+        self.login = login
+        self.password = password
+        self.start_row = start_row
+        self.end_row = end_row
+        self.row_index = self.start_row
+
+    
         self.file_path = r"C:\Users\SUPERVISÃO ADM\.git\RPA_ipasgo.py\SOLICITACOES_AUTORIZACAO_FACPLAN.xlsx"
         self.copy_file_path = r"C:\Users\SUPERVISÃO ADM\.git\RPA_ipasgo.py\SOLICITACOES_AUTORIZACAO_FACPLAN_COPIA.csv"
         self.sheet_name = 'AUTORIZACOES'
@@ -157,34 +163,20 @@ class IpasgoAutomation(BaseAutomation):
         self.df = pd.read_excel(
             self.file_path,
             sheet_name=self.sheet_name,
-            header=0
+            header=0,
+            dtype={'CARTEIRA': str} #coluna CARTEIRA permanecerá com os zeros a esquerda, visto que as demais colunas não seguem o mesmo padrão devido ao site do ipasgo.
         )
 
-        self.df.columns = [col.upper().strip() for col in self.df.columns]
-        if not os.path.exists(self.copy_file_path):
-            self.df.to_csv(self.copy_file_path, index=False, encoding='utf-8')
-
-
-        self.df = pd.read_csv(
-            self.copy_file_path,
-            header=0,    #linha do cabeçalho
-            encoding='utf-8'
-        )
-
-        
+ 
         self.df.columns = [col.upper().strip() for col in self.df.columns]# Normaliza os nomes das colunas para maiúsculas
         
         # Adiciona a coluna 'ERRO' se não existir
         if 'ERRO' not in self.df.columns:
             self.df['ERRO'] = ''
 
-
-        # Definição do intervalo de linhas
-        self.start_row = 0
-        self.end_row = len(self.df) - 1
+        #incializa pelo indice de linha atual
         self.row_index = self.start_row
         
-        # Definição dos elementos de erro
 
 
     def get_excel_value(self, column_name):
@@ -205,10 +197,10 @@ class IpasgoAutomation(BaseAutomation):
             self.wait_for_stability(timeout=10)
 
             matricula_input = self.acessar_com_reattempt((By.ID, "SilkUIFramework_wt13_block_wtUsername_wtUserNameInput2"))
-            matricula_input.send_keys("14898500")
+            matricula_input.send_keys(self.login)
 
             senha_input = self.acessar_com_reattempt((By.ID, "SilkUIFramework_wt13_block_wtPassword_wtPasswordInput"))
-            senha_input.send_keys("Clmf2024")
+            senha_input.send_keys(self.password)
 
             self.safe_click((By.ID, "SilkUIFramework_wt13_block_wtAction_wtLoginButton"))   
        
@@ -322,7 +314,7 @@ class IpasgoAutomation(BaseAutomation):
                 f.write(f"{current_time} - Paciente: {nome_paciente} - Erro ao processar a linha: {e}\n")
 
             # Salva uma entrada de erro no CSV
-            self.salvar_numero_no_csv(lista_erros=f"Erro: {e}")
+            self.salvar_numero_no_excel(lista_erros=f"Erro: {e}")
 
             # Aguarda 5 segundos
             time.sleep(5)
@@ -801,7 +793,7 @@ class IpasgoAutomation(BaseAutomation):
 
                 logging.info(f"Erros salvos no arquivo 'numeros_guias.txt': {erros_formatados}")
 
-                self.salvar_numero_no_csv(lista_erros=erros_formatados)# Salvar no CSV
+                self.salvar_numero_no_excel(lista_erros=erros_formatados)# Salvar no CSV
             
                 time.sleep(5)
 
@@ -824,7 +816,7 @@ class IpasgoAutomation(BaseAutomation):
                 f.write(f"{current_time} - Paciente: {nome_paciente} - {erro_texto}\n")
 
             # Salvar no CSV com o erro
-            self.salvar_numero_no_csv(lista_erros=erro_texto)
+            self.salvar_numero_no_excel(lista_erros=erro_texto)
 
             # Aguardar 5 segundos
             time.sleep(5)
@@ -876,7 +868,7 @@ class IpasgoAutomation(BaseAutomation):
 
                 lista_numeros.append(numero_guia)
                 time.sleep(1)
-                self.salvar_numero_no_csv(lista_numeros)    
+                self.salvar_numero_no_excel(lista_numeros)    
                 # Grava a lista de números e o nome do paciente em um arquivo txt
                 try:
                     current_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
@@ -916,41 +908,44 @@ class IpasgoAutomation(BaseAutomation):
                     lista_numeros.append('')
                     
 
-                    self.salvar_numero_no_csv(lista_numeros)
+                    self.salvar_numero_no_excel(lista_numeros)
                     raise e
 
 
 
 
-    def salvar_numero_no_csv(self, lista_erros=None):
+    def salvar_numero_no_excel(self, numero_guia=None, lista_erros=None):
         try:
-            col_name = 'GUIA_COD'  # Este é o nome exato da coluna
-            erro_col_name = 'ERRO'  # Nova coluna para erros
+            col_name = 'GUIA_COD'  # Nome exato da coluna onde será salvo o número da guia
+            erro_col_name = 'ERRO'  # Coluna para salvar mensagens de erro
 
-
-            if col_name not in self.df.columns: # Verifica se a coluna 'GUIA_COD' existe; se não, cria
+            # Verifica se as colunas existem; se não, cria
+            if col_name not in self.df.columns:
                 self.df[col_name] = ''
-            if erro_col_name not in self.df.columns: # Verifica se a coluna 'ERRO' existe; se não, cria
+            if erro_col_name not in self.df.columns:
                 self.df[erro_col_name] = ''
-
-            numero_guia = self.df.at[self.row_index, col_name] #lê o valor N* guia antes de inserir
 
             # Atualiza o DataFrame na linha atual
             if lista_erros:
                 self.df.at[self.row_index, col_name] = 'ERRO'
                 self.df.at[self.row_index, erro_col_name] = lista_erros
-                logging.info(f"Erro salvo no CSV na coluna '{erro_col_name}': {lista_erros}")
+                logging.info(f"Erro salvo na coluna '{erro_col_name}': {lista_erros}")
             else:
-                numero_guia = 'SUCESSO' # Caso contrário, salva o número da guia normalmente, ou o valor correspondente
-                self.df.at[self.row_index, col_name] = numero_guia
+                if numero_guia:
+                    self.df.at[self.row_index, col_name] = numero_guia
+                    logging.info(f"Número da Guia '{numero_guia}' salvo com sucesso na coluna '{col_name}'.")
+                else:
+                    self.df.at[self.row_index, col_name] = 'SUCESSO'
+                    logging.info(f"Número da Guia 'SUCESSO' salvo com sucesso na coluna '{col_name}'.")
                 self.df.at[self.row_index, erro_col_name] = ''
-                logging.info(f"Número da Guia '{numero_guia}' salvo com sucesso no CSV na coluna '{col_name}'.")
 
-            self.df.to_csv(self.copy_file_path, index=False, encoding='utf-8') # Salva o DataFrame de volta no arquivo CSV
+            # Salva o DataFrame de volta no arquivo Excel
+            self.df.to_excel(self.file_path, sheet_name=self.sheet_name, index=False)
 
         except Exception as e:
-            logging.error(f"Erro ao salvar no CSV: {e}", exc_info=True)
-            logging.warning("Execução correta, mas falha ao preencher o CSV.")
+            logging.error(f"Erro ao salvar no arquivo Excel: {e}", exc_info=True)
+            logging.warning("Execução correta, mas falha ao preencher o arquivo Excel.")
+
 
 if __name__ == "__main__":
     try:
@@ -1000,11 +995,15 @@ if __name__ == "__main__":
                 messagebox.showerror("Erro", "As linhas inicial e final devem ser números inteiros.")
                 return
 
+            # Adjust for Excel header (assuming header is on line 1)
+            start_row_index = start_row - 2
+            end_row_index = end_row - 2
+
             # Close the GUI window
             root.destroy()
 
             # Initialize the automation class with user inputs
-            ipasgo = IpasgoAutomation()
+            ipasgo = IpasgoAutomation(login, password, start_row_index, end_row_index)
             ipasgo.acessar_portal_ipasgo()
 
             # Validate the range of rows defined
@@ -1013,16 +1012,16 @@ if __name__ == "__main__":
                 print("A linha inicial não pode ser negativa.")
                 return
             if ipasgo.end_row > max_row:
-                print(f"A linha final não pode ser maior que {max_row}.")
+                print(f"A linha final não pode ser maior que {max_row + 2}.")
                 return
             if ipasgo.start_row > ipasgo.end_row:
                 print("A linha inicial não pode ser maior que a linha final.")
                 return
 
             # Process each row in the specified range
-            for idx in range(ipasgo.start_row, ipasgo.end_row + 1):
+            for idx in range(start_row_index, end_row_index + 1):
                 ipasgo.row_index = idx
-                logging.info(f"Iniciando o processamento da linha {idx}")
+                logging.info(f"Iniciando o processamento da linha {idx + 2}")
                 ipasgo.process_row()
 
             input("Pressione qualquer tecla para fechar o navegador...")
