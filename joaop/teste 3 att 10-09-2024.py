@@ -256,6 +256,24 @@ class IpasgoAutomation(BaseAutomation):
 
 
     def process_row(self):
+
+        """Processando uma única linha do Excel por vez."""
+        # Verifica se a linha já foi processada
+        guia_cod = self.df.at[self.row_index, 'GUIA_COD']
+        if pd.notna(guia_cod) and str(guia_cod).strip() != '':
+            guia_cod_str = str(guia_cod).strip()
+            # Verifica se o conteúdo é numérico
+            if guia_cod_str.replace('.', '', 1).isdigit():
+                # Linha já processada, exibe mensagem de aviso e pula para a próxima
+                logging.warning(f"Linha {self.row_index + 2} já foi executada e a guia solicitada é {guia_cod_str}.")
+                return  # Sai do método e vai para a próxima linha
+            else:
+                # Conteúdo não é numérico, processa a linha
+                logging.info(f"Linha {self.row_index + 2} contém texto em 'GUIA_COD'. Processando a linha.")
+        else:
+            # Coluna 'GUIA_COD' está vazia, processa a linha
+            logging.info(f"Linha {self.row_index + 2} não possui valor em 'GUIA_COD'. Processando a linha.")
+
         """Processando uma única linha do Excel por vez."""
         try:
             # Lida com o alerta caso ele apareça
