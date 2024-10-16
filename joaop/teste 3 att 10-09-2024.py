@@ -270,7 +270,7 @@ class IpasgoAutomation(BaseAutomation):
             if guia_cod_str.replace('.', '', 1).isdigit():
                 # Linha já processada, exibe mensagem de aviso e pula para a próxima
                 logging.warning(f"Linha {self.row_index + 2} já foi executada e a guia solicitada é {guia_cod_str}.")
-                return  # Sai do método e vai para a próxima linha
+                return
             else:
                 # Conteúdo não é numérico, processa a linha
                 logging.info(f"Linha {self.row_index + 2} contém texto em 'GUIA_COD'. Processando a linha.")
@@ -278,7 +278,6 @@ class IpasgoAutomation(BaseAutomation):
             # Coluna 'GUIA_COD' está vazia, processa a linha
             logging.info(f"Linha {self.row_index + 2} não possui valor em 'GUIA_COD'. Processando a linha.")
 
-        """Processando uma única linha do Excel por vez."""
         try:
             # Lida com o alerta caso ele apareça
             self.lidar_com_alerta()
@@ -319,9 +318,7 @@ class IpasgoAutomation(BaseAutomation):
             # Salvando e confirmando a solicitação
             self.salvar_confirmar()
 
-            # Armazenando o número em uma lista para print em txt ou excel
-            lista_numeros = []  # Inicializa a lista para armazenar os números
-            self.salvar_anotar_numero(lista_numeros)  # Salva na lista
+            self.salvar_anotar_numero()  # Salva na lista
 
         except Exception as e:
             logging.error(f"Erro ao processar a linha {self.row_index}: {e}")
@@ -335,15 +332,15 @@ class IpasgoAutomation(BaseAutomation):
             with open('numeros_guias.txt', 'a', encoding='utf-8') as f:
                 f.write(f"{current_time} - Paciente: {nome_paciente} - Erro ao processar a linha: {e}\n")
 
-            # Salva uma entrada de erro no CSV
+            # Salva uma entrada de erro no excel
             self.salvar_numero_no_excel(lista_erros=f"Erro: {e}")
 
-            # Aguarda 5 segundos
+            
             time.sleep(5)
 
-            # Passa para a próxima linha sem recarregar novamente
+           
             logging.info("Passando para a próxima linha após erro.")
-            pass  # Continua para a próxima iteração
+            pass 
 
 
     def lidar_com_alerta(self):
@@ -853,7 +850,7 @@ class IpasgoAutomation(BaseAutomation):
 
 
 
-    def salvar_anotar_numero(self, lista_numeros): 
+    def salvar_anotar_numero(self): 
         max_attempts = 3  # Número máximo de tentativas
         for attempt in range(max_attempts):
             try:
@@ -888,9 +885,8 @@ class IpasgoAutomation(BaseAutomation):
                 nome_especialidade = self.df['ESPECIALIDADE'].iloc[self.row_index]
                 logging.info(f"Nome da especialidade capturada: {nome_especialidade}")
 
-                lista_numeros.append(numero_guia)
                 time.sleep(1)
-                self.salvar_numero_no_excel(lista_numeros)    
+                self.salvar_numero_no_excel(numero_guia=numero_guia)    
                 # Grava a lista de números e o nome do paciente em um arquivo txt
                 try:
                     current_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
@@ -916,7 +912,7 @@ class IpasgoAutomation(BaseAutomation):
                     time.sleep(2)
                 else:
                     logging.error("Número máximo de tentativas alcançado. Não foi possível capturar o número da guia.")
-                    # Salva a mensagem de erro no txt e no CSV
+                    # Salva a mensagem de erro no txt e no excel
                     try:
                         
                         nome_paciente = self.df['PACIENTE'].iloc[self.row_index]
