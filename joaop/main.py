@@ -342,13 +342,13 @@ class IpasgoAutomation(BaseAutomation):
             with open(self.txt_file_path, 'a', encoding='utf-8') as f:
                 f.write(f"{current_time} - Paciente: {nome_paciente} - Especialidade: {especialidade}- Erro na função {function_name}\n")
 
-            # Salva uma entrada de erro no Excel com o nome da função
+           
             self.salvar_numero_no_excel(lista_erros=f"Erro na função {function_name}")
 
             time.sleep(5)
 
             logging.info("Passando para a próxima linha após erro.")
-            pass  # Continua para a próxima iteração
+            pass 
 
 
     def lidar_com_alerta(self):
@@ -380,7 +380,7 @@ class IpasgoAutomation(BaseAutomation):
             numero_carteira_input.send_keys(Keys.ENTER)
             
 
-            # Aguarda até que o campo 'nomeDoBeneficiario' seja preenchido
+            
             WebDriverWait(self.driver, 180).until(
                 lambda driver: driver.find_element(By.XPATH, '//*[@id="nomeDoBeneficiario"]').get_attribute('value') != ''
             )
@@ -578,17 +578,17 @@ class IpasgoAutomation(BaseAutomation):
         try:
             justificativa = self.get_excel_value('JUSTIFICATIVA')
 
-            # Rolagem para garantir que o campo esteja visível na tela
+            
             observacao_tab = self.acessar_com_reattempt((By.ID, "ui-accordion-accordion-header-4"))
             self.driver.execute_script("arguments[0].scrollIntoView(true);", observacao_tab)
             time.sleep(1)
 
             observacao_tab.click()
 
-            # Localiza o campo de observação
+           
             observacao_input = self.acessar_com_reattempt((By.ID, "observacao"))
 
-            # Preenche o campo com o valor da justificativa
+            
             observacao_input.send_keys(justificativa)
 
             logging.info(f"Campo 'Observação/Justificativa' preenchido com sucesso com o valor: {justificativa}")
@@ -607,7 +607,7 @@ class IpasgoAutomation(BaseAutomation):
             time.sleep(1)
 
             # Simula a tecla para baixo várias vezes até chegar na opção desejada
-            for _ in range(46):  # Ajuste o número de vezes conforme necessário
+            for _ in range(46): 
                 tipo_anexo_dropdown.send_keys(Keys.ARROW_DOWN)
 
             tipo_anexo_dropdown.send_keys(Keys.RETURN)
@@ -620,10 +620,10 @@ class IpasgoAutomation(BaseAutomation):
     def Anexando_RM(self):
         try:
 
-            # Define o caminho base
+            # caminho base dos relatórios para solicitação das guias
             base_path = Path(r"G:\Meu Drive\IPASGO\1.RELATORIO MEDICO E CLINICO")
 
-            # Obtém 'Paciente' e 'CARTEIRA' da planilha Excel
+           
             nome_paciente = self.get_excel_value('PACIENTE')
             id_paciente = self.get_excel_value('CARTEIRA')
 
@@ -640,7 +640,7 @@ class IpasgoAutomation(BaseAutomation):
 
             logging.info(f"Caminho da pasta do paciente: {patient_folder_path}")
 
-            # Verifica se a pasta do paciente existe
+            
             if not patient_folder_path.is_dir():
                 logging.error(f"A pasta do paciente '{patient_folder_path}' não foi encontrada.")
                 return
@@ -654,21 +654,21 @@ class IpasgoAutomation(BaseAutomation):
 
             logging.info(f"Arquivos RM encontrados: {arquivos_rm}")
 
-            # Faz o upload do primeiro arquivo RM encontrado
+            
             for arquivo_para_upload in arquivos_rm:
-                # Localiza o elemento <input type="file">
+                
                 input_file = self.driver.find_element(By.CSS_SELECTOR, 'input[type="file"]')
                 logging.info("Elemento de upload encontrado.")
 
-                # Envia o caminho do arquivo para o elemento 'input'
+                
                 input_file.send_keys(str(arquivo_para_upload))
                 logging.info(f"Arquivo '{arquivo_para_upload}' selecionado com sucesso.")
 
                 time.sleep(2)
 
-                break  # Encerra o loop após carregar o primeiro arquivo RM
+                break  
 
-            # Clica no botão 'Adicionar'
+            
             self.safe_click((By.XPATH, '//*[@id="upload_form"]/div/input[2]'))
 
             time.sleep(2)
@@ -804,13 +804,13 @@ class IpasgoAutomation(BaseAutomation):
                     continue
 
             if errors_found:
-                # Obtem o nome do paciente
+                
                 try:
                     nome_paciente = self.df['PACIENTE'].iloc[self.row_index]
                 except KeyError:
                     nome_paciente = 'Nome do paciente não encontrado'
 
-                # Formatar a mensagem de erro
+                
                 erros_formatados = "; ".join(errors_found)
 
                 # Salvar no arquivo TXT
@@ -820,7 +820,7 @@ class IpasgoAutomation(BaseAutomation):
 
                 logging.info(f"Erros salvos no arquivo 'numeros_guias.txt': {erros_formatados}")
 
-                self.salvar_numero_no_excel(lista_erros=erros_formatados)# Salvar no CSV
+                self.salvar_numero_no_excel(lista_erros=erros_formatados)
             
                 time.sleep(5)
 
@@ -831,7 +831,7 @@ class IpasgoAutomation(BaseAutomation):
 
         except Exception as e:
             logging.error(f"Erro ao tentar salvar e confirmar: {e}")
-            # Salvar a mensagem de erro no TXT e CSV
+            
             try:
                 nome_paciente = self.df['PACIENTE'].iloc[self.row_index]
             except KeyError:
@@ -842,13 +842,13 @@ class IpasgoAutomation(BaseAutomation):
             with open(self.txt_file_path, 'a', encoding='utf-8') as f:
                 f.write(f"{current_time} - Paciente: {nome_paciente} - Erro na função {function_name}\n")
 
-            # Salvar no Excel com o erro
+            
             self.salvar_numero_no_excel(lista_erros=f"Erro na função {function_name}")
 
-            # Aguardar 5 segundos
+            
             time.sleep(5)
 
-            # Recarregar a página
+            
             self.driver.refresh()
             logging.info("Página recarregada devido a erro inesperado.")
 
@@ -858,7 +858,7 @@ class IpasgoAutomation(BaseAutomation):
 
 
     def salvar_anotar_numero(self): 
-        max_attempts = 3  # Número máximo de tentativas
+        max_attempts = 3  
         for attempt in range(max_attempts):
             try:
                 logging.info(f"Iniciando o processo de captura do número da guia... Tentativa {attempt + 1} de {max_attempts}")
@@ -881,7 +881,7 @@ class IpasgoAutomation(BaseAutomation):
                     EC.presence_of_element_located((By.XPATH, '//*[@id="dialogText"]/div[2]'))
                 )
 
-                # Extrai o número da guia
+                
                 numero_guia_completo = elemento_numero_guia.text.strip()
                 numero_guia = numero_guia_completo.split("Nº Guia Operadora:")[-1].strip()
                 logging.info(f"Número da Guia capturado: {numero_guia}")
@@ -901,12 +901,12 @@ class IpasgoAutomation(BaseAutomation):
                         f.write(f"{current_time} - Paciente: {nome_paciente}  {nome_especialidade} - Nº Guia Operadora: {numero_guia}\n")
                     logging.info(f"Número da guia e nome do paciente salvos no arquivo 'numeros_guias.txt'.")
 
-                    # Envia a tecla ESC para fechar o pop-up
+                    
                     ActionChains(self.driver).send_keys(Keys.ESCAPE).perform() 
 
                     time.sleep(5)
 
-                    break  # Encerra o loop após sucesso
+                    break  
 
                 except Exception as e:
                     logging.error(f"Erro ao salvar no arquivo txt: {e}", exc_info=True)
@@ -917,7 +917,7 @@ class IpasgoAutomation(BaseAutomation):
                     time.sleep(2)
                 else:
                     logging.error("Número máximo de tentativas alcançado. Não foi possível capturar o número da guia.")
-                    # Salva a mensagem de erro no txt e no Excel
+                    
                     try:
                         current_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
                         nome_paciente = self.df['PACIENTE'].iloc[self.row_index]
@@ -929,7 +929,7 @@ class IpasgoAutomation(BaseAutomation):
                     with open(self.txt_file_path, 'a', encoding='utf-8') as f:
                         f.write(f"{current_time} - Paciente: {nome_paciente} - Erro na função {function_name}\n")
                     
-                    # Salva o erro no Excel
+                    
                     self.salvar_numero_no_excel(lista_erros=f"Erro na função {function_name}")
                     raise e
 
@@ -938,10 +938,10 @@ class IpasgoAutomation(BaseAutomation):
 
     def salvar_numero_no_excel(self, numero_guia=None, lista_erros=None):
         try:
-            col_name = 'GUIA_COD'  # Nome exato da coluna onde será salvo o número da guia
-            erro_col_name = 'ERRO'  # Coluna para salvar mensagens de erro
+            col_name = 'GUIA_COD'  
+            erro_col_name = 'ERRO'  
 
-            # Verifica se as colunas existem; se não, cria
+            
             if col_name not in self.df.columns:
                 self.df[col_name] = ''
             if erro_col_name not in self.df.columns:
@@ -971,7 +971,7 @@ class IpasgoAutomation(BaseAutomation):
 
 if __name__ == "__main__":
     try:
-        # Create the GUI window
+        
         root = tk.Tk()
         root.title("Automação de Solicitações IPASGO")
 
@@ -998,7 +998,7 @@ if __name__ == "__main__":
         end_row_entry = tk.Entry(root, textvariable=end_row_var)
         end_row_entry.grid(row=3, column=1, padx=10, pady=5)
 
-        # Function to start the automation process
+        #  Função para iniciar o processo de automação
         def iniciar_processo():
             login = login_var.get()
             password = password_var.get()
@@ -1009,7 +1009,7 @@ if __name__ == "__main__":
                 messagebox.showerror("Erro", "Por favor, preencha todos os campos.")
                 return
 
-            # Convert start_row and end_row to integers
+            # Converter start_row e end_row em números inteiros
             try:
                 start_row = int(start_row)
                 end_row = int(end_row)
@@ -1017,18 +1017,18 @@ if __name__ == "__main__":
                 messagebox.showerror("Erro", "As linhas inicial e final devem ser números inteiros.")
                 return
 
-            # Adjust for Excel header (assuming header is on line 1)
+            
             start_row_index = start_row - 2
             end_row_index = end_row - 2
 
-            # Close the GUI window
+            # Finaliza a janela Tkinte
             root.destroy()
 
-            # Initialize the automation class with user inputs
+            # Inicialize a classe de automação com entradas do usuário
             ipasgo = IpasgoAutomation(login, password, start_row_index, end_row_index)
             ipasgo.acessar_portal_ipasgo()
 
-            # Validate the range of rows defined
+            # Valida o intervalo de linhas definido
             max_row = len(ipasgo.df) - 1
             if ipasgo.start_row < 0:
                 print("A linha inicial não pode ser negativa.")
@@ -1040,7 +1040,7 @@ if __name__ == "__main__":
                 print("A linha inicial não pode ser maior que a linha final.")
                 return
 
-            # Process each row in the specified range
+        
             for idx in range(start_row_index, end_row_index + 1):
                 ipasgo.row_index = idx
                 logging.info(f"Iniciando o processamento da linha {idx + 2}")
@@ -1049,11 +1049,11 @@ if __name__ == "__main__":
             input("Pressione qualquer tecla para fechar o navegador...")
             ipasgo.close()
 
-        # Create the "Iniciar" button
+        
         iniciar_button = tk.Button(root, text="Iniciar", command=iniciar_processo)
         iniciar_button.grid(row=4, column=0, columnspan=2, pady=10)
 
-        # Start the GUI loop
+        
         root.mainloop()
 
     except Exception as e:
