@@ -923,10 +923,10 @@ class IpasgoAutomation(BaseAutomation):
                     with open('numeros_guias.txt', 'a', encoding='utf-8') as f:
                         f.write(f"Paciente: {nome_paciente} - Erro ao capturar o número da guia: {e}\n")
                     
-                    lista_numeros.append('')
+                    
                     
 
-                    self.salvar_numero_no_excel(lista_numeros)
+                    self.salvar_numero_no_excel(numero_guia=numero_guia)
                     raise e
 
 

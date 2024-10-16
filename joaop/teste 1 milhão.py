@@ -163,7 +163,7 @@ class IpasgoAutomation(BaseAutomation):
     
         self.file_path = r"C:\Users\SUPERVISÃO ADM\.git\RPA_ipasgo.py\SOLICITACOES_AUTORIZACAO_FACPLAN.xlsx"
         self.sheet_name = 'AUTORIZACOES'
-        self.txt_file_path = os.path.join("C:\Users\SUPERVISÃO ADM\.git\RPA_ipasgo.py\numeros_guias.txt")  # Caminho do arquivo txt
+        self.txt_file_path = os.path.join(r"C:\Users\SUPERVISÃO ADM\.git\RPA_ipasgo.py\numeros_guias.txt")  # Caminho do arquivo txt
 
         # Ler o arquivo Excel original
         self.df = pd.read_excel(
