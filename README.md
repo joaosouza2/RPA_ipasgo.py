@@ -4,7 +4,7 @@ Este projeto foi desenvolvido para automatizar o processo de solicitação de gu
 
 ## Estrutura do Projeto
 
-- **Arquivo Principal**: `joaop/teste 1 milhão.py` – Este script principal executa a automação das solicitações.
+- **Arquivo Principal**: `main.py` – Este script principal executa a automação das solicitações.
 - **Arquivo de Referência**: `numeros_guias.txt` – Armazena números de guias que foram processadas.
 - **Ambiente Virtual**: A pasta `joaop` contém os arquivos necessários para a configuração do ambiente virtual.
 
@@ -66,7 +66,7 @@ Para rodar o projeto, você precisará instalar os seguintes requisitos:
 2. Execute o script principal:
 
    ```bash
-   python joaop/teste 1 milhão.py
+   python main.py
    ```
 
 O script irá processar as solicitações de guias médicas para o IPASGO automaticamente e salvará os resultados diretamente no arquivo `.xlsx` e no `numeros_guias.txt` ( No qual é responsável por armazenar os números de guias que foram processadas, ou os erros, contendo, horário da solicitação, paciente, especialidade e em qual etapa conteve erro)
