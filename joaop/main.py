@@ -466,7 +466,7 @@ class IpasgoAutomation(BaseAutomation):
 
             indicacao_clinica_input = self.acessar_com_reattempt((By.ID, "indicacaoClinica"))
             indicacao_clinica_input.send_keys(indicacao_clinica)
-
+            time.sleep(2)
             logging.info(f"Campo 'Indicação Clínica' preenchido com sucesso com o valor: {indicacao_clinica}")
 
         except Exception as e:
