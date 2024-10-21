@@ -117,7 +117,7 @@ class BaseAutomation:
             except TimeoutException as e:
                 logging.warning(f"Tentativa {attempt + 1} falhou. Tentando novamente...")
                 time.sleep(1)
-        raise Exception(f"Não foi possível acessar o elemento após {attempts} tentativas.")
+        raise Exception(f"Não foi possível acessar o elemento após {attempts} tentativas.") 
 
     def close(self):
         """Fecha o navegador."""
@@ -161,7 +161,7 @@ class IpasgoAutomation(BaseAutomation):
         self.row_index = self.start_row
 
     
-        self.file_path = r"C:\Users\SUPERVISÃO ADM\.git\RPA_ipasgo.py\SOLICITACOES_AUTORIZACAO_FACPLAN.xlsx"
+        self.file_path = r"C:\Users\SUPERVISÃO ADM\Desktop\SOLICITACOES_AUTORIZACAO_FACPLAN_EXECUTAR.xlsx"
         self.sheet_name = 'AUTORIZACOES'
         self.txt_file_path = os.path.join(r"C:\Users\SUPERVISÃO ADM\.git\RPA_ipasgo.py\numeros_guias.txt")  # Caminho do arquivo txt
 
@@ -293,6 +293,8 @@ class IpasgoAutomation(BaseAutomation):
             # Preenche o tipo de atendimento e quantas guias serão solicitadas
             self.preencher_carater_atendimento()
 
+            self.data_solicitacao()
+
             # Preenche o campo 'Indicação Clínica'
             self.preencher_indicacao_clinica()
 
@@ -414,6 +416,46 @@ class IpasgoAutomation(BaseAutomation):
         except Exception as e:
             logging.error(f"Erro ao preencher o campo 'Caráter do Atendimento': {e}")
 
+
+    def data_solicitacao(self):
+        """Preenche o campo 'Data de Solicitação' com dados do Excel e verifica se foi preenchido corretamente."""
+        try:
+            data_solicitacao = self.df['DATA'].iloc[self.row_index]
+            if pd.isnull(data_solicitacao):
+                logging.error(f"Data de solicitação está vazia na linha {self.row_index + 2}.")
+                return
+
+            # Verifica se data_solicitacao é um Timestamp e formata para 'DD/MM/YYYY'
+            if isinstance(data_solicitacao, pd.Timestamp):
+                data_solicitacao_str = data_solicitacao.strftime('%d/%m/%Y')
+            else:
+                # Tenta converter a string para datetime, caso não esteja no formato Timestamp
+                try:
+                    data_solicitacao_parsed = pd.to_datetime(data_solicitacao, dayfirst=True)
+                    data_solicitacao_str = data_solicitacao_parsed.strftime('%d/%m/%Y')
+                except Exception as e:
+                    logging.error(f"Erro ao converter a data: {e}")
+                    return
+
+            data_solicitacao_input = self.acessar_com_reattempt((By.XPATH, '//*[@id="dataSolicitacao"]'))
+            data_solicitacao_input.click()  # Clique no campo para garantir que está focado
+            data_solicitacao_input.clear()  # Limpa o texto existente
+            data_solicitacao_input.send_keys(data_solicitacao_str)  # Insere a data
+            logging.info(f"Campo 'Data de Solicitação' preenchido com sucesso com o valor: {data_solicitacao_str}")
+
+            # Aguarda um breve momento para o campo processar a entrada
+            time.sleep(1)
+
+            # Agora verifica se o campo realmente contém a data inserida
+            valor_preenchido = data_solicitacao_input.get_attribute('value')
+            if valor_preenchido != data_solicitacao_str:
+                logging.error(f"O campo 'Data de Solicitação' não foi preenchido corretamente. Esperado: {data_solicitacao_str}, Encontrado: {valor_preenchido}")
+                return
+            else:
+                logging.info(f"O campo 'Data de Solicitação' foi verificado e contém o valor correto.")
+
+        except Exception as e:
+            logging.error(f"Erro ao preencher o campo 'Data de Solicitação': {e}")
 
 
     def preencher_indicacao_clinica(self):
