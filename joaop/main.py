@@ -216,7 +216,7 @@ class IpasgoAutomation(BaseAutomation):
        
             self.wait_for_stability(timeout=10)
 
-            link_portal_webplan = self.acessar_com_reattempt((By.XPATH, "//*[@id='IpasgoTheme_wt16_block_wtMainContent_wtSistemas_ctl10_SilkUIFramework_wt36_block_wtActions_wtModulos_SilkUIFramework_wt9_block_wtContent_wtModuloPortalTable_ctl04_wt2']"))
+            link_portal_webplan = self.acessar_com_reattempt((By.XPATH, "//*[@id='IpasgoTheme_wt16_block_wtMainContent_wtSistemas_ctl08_SilkUIFramework_wt36_block_wtActions_wtModulos_SilkUIFramework_wt9_block_wtContent_wtModuloPortalTable_ctl04_wt2']/span"))
             self.driver.execute_script("arguments[0].scrollIntoView(true);", link_portal_webplan)
             time.sleep(2)
             link_portal_webplan.click()
