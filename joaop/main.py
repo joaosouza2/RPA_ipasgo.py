@@ -23,7 +23,7 @@ import inspect
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 
-def encontrar_arquivos_paciente(caminho_pasta, id_paciente, nome_paciente):
+def encontrar_arquivos_paciente(caminho_pasta, id_paciente):
     p = Path(caminho_pasta)
 
     arquivos_rm = []
