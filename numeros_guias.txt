@@ -1,1 +1,18 @@
-2024-10-16 15:02:02 - Paciente: BENJAMIM CORTES DA SILVA  PSICOLOGIA - TEA - Nº Guia Operadora: 8352488
+2024-10-21 17:33:19 - Paciente: ADRIAN FERNANDES DOS SANTOS  FONOAUDIOLOGIA - TEA - Nº Guia Operadora: 8454182
+ARTHUR SILVEIRA DE MEDEIROS - EXCLUIDO DO IPASGO PELO IPASGO
+2024-10-21 17:46:44 - Paciente: ARTHUR SILVA PIRES  PSICOLOGIA - TEA - Nº Guia Operadora: 8454691
+
+2024-10-21 17:58:08 - Paciente: ARTUR GUIMARAES BORGO - Erro na função salvar_confirmar
+2024-10-21 17:58:14 - Paciente: ARTUR GUIMARAES BORGO - Especialidade: PSICOLOGIA - GERAL- Erro na função process_row
+2024-10-21 17:58:19 - Paciente: BENJAMIN PINHEIRO VERIDIANO - Erro na função salvar_confirmar
+2024-10-21 17:58:24 - Paciente: BENJAMIN PINHEIRO VERIDIANO - Especialidade: PSICOLOGIA - TEA- Erro na função process_row
+2024-10-21 17:58:29 - Paciente: DAVID ISRAEL CIRIACO MATOS - Erro na função salvar_confirmar
+2024-10-21 17:58:34 - Paciente: DAVID ISRAEL CIRIACO MATOS - Especialidade: FONOAUDIOLOGIA - TEA- Erro na função process_row
+2024-10-21 18:01:36 - Paciente: ARTHUR GUIMARAES BORGO - Erro na função salvar_confirmar
+2024-10-21 18:01:42 - Paciente: ARTHUR GUIMARAES BORGO - Especialidade: PSICOLOGIA - GERAL- Erro na função process_row
+2024-10-21 18:01:47 - Paciente: BENJAMIN PINHEIRO VERIDIANO - Erro na função salvar_confirmar
+2024-10-21 18:01:52 - Paciente: BENJAMIN PINHEIRO VERIDIANO - Especialidade: PSICOLOGIA - TEA- Erro na função process_row
+2024-10-21 18:01:57 - Paciente: DAVID ISRAEL CIRIACO MATOS - Erro na função salvar_confirmar
+2024-10-21 18:02:02 - Paciente: DAVID ISRAEL CIRIACO MATOS - Especialidade: FONOAUDIOLOGIA - TEA- Erro na função process_row
+2024-10-21 18:08:03 - Paciente: ARTHUR GUIMARAES BORGO  PSICOLOGIA - GERAL - Nº Guia Operadora: 8455212
+2024-10-21 18:08:45 - Paciente: BENJAMIN PINHEIRO VERIDIANO - Erro na função salvar_confirmar
