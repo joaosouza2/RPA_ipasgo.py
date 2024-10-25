@@ -31,13 +31,13 @@ def encontrar_arquivos_paciente(caminho_pasta, id_paciente):
     arquivos_rc_psi = []
     arquivos_rc_to = []
 
-    # Padrão para arquivos RM usando expressões regulares
-    padrao_rm = rf'(?i)^RM.*{id_paciente}.*\..+$'
+    # Padrão para arquivos RM usando expressões regulares, permitindo espaços e traços opcionais
+    padrao_rm = rf'(?i)^RM[\s-]*{id_paciente}.*\..+$'
 
-    # Padrões para os três tipos de documentação usando expressões regulares
-    padrao_rc_fono = rf'(?i)^RC.*{id_paciente}.*FONO.*\..+$'
-    padrao_rc_psi = rf'(?i)^RC.*{id_paciente}.*PSI.*\..+$'
-    padrao_rc_to = rf'(?i)^RC.*{id_paciente}.*TO.*\..+$'
+    # Padrões para os três tipos de documentação usando expressões regulares, permitindo espaços e traços opcionais
+    padrao_rc_fono = rf'(?i)^RC[\s-]*{id_paciente}[\s-]*.*FONO.*\..+$'
+    padrao_rc_psi = rf'(?i)^RC[\s-]*{id_paciente}[\s-]*.*PSI.*\..+$'
+    padrao_rc_to = rf'(?i)^RC[\s-]*{id_paciente}[\s-]*.*TO.*\..+$'
 
     logging.info(f"Verificando arquivos na pasta: {caminho_pasta}")
 
@@ -69,6 +69,7 @@ def encontrar_arquivos_paciente(caminho_pasta, id_paciente):
                 continue
 
     return arquivos_rm, arquivos_rc_fono, arquivos_rc_psi, arquivos_rc_to
+
 
 
 def get_current_function_name():
@@ -161,7 +162,7 @@ class IpasgoAutomation(BaseAutomation):
         self.row_index = self.start_row
 
     
-        self.file_path = r"C:\Users\SUPERVISÃO ADM\Desktop\SOLICITACOES_AUTORIZACAO_FACPLAN_EXECUTAR.xlsx"
+        self.file_path = r"C:\Users\SUPERVISÃO ADM\Desktop\SOLICITACOES_AUTORIZACAO_FACPLAN -DIARIO-11-2024.xlsx"
         self.sheet_name = 'AUTORIZACOES'
         self.txt_file_path = os.path.join(r"C:\Users\SUPERVISÃO ADM\.git\RPA_ipasgo.py\numeros_guias.txt")  # Caminho do arquivo txt
 
@@ -293,7 +294,7 @@ class IpasgoAutomation(BaseAutomation):
             # Preenche o tipo de atendimento e quantas guias serão solicitadas
             self.preencher_carater_atendimento()
 
-            self.data_solicitacao()
+            #self.data_solicitacao()
 
             # Preenche o campo 'Indicação Clínica'
             self.preencher_indicacao_clinica()
@@ -661,11 +662,7 @@ class IpasgoAutomation(BaseAutomation):
 
     def Anexando_RM(self):
         try:
-
-            # caminho base dos relatórios para solicitação das guias
             base_path = Path(r"G:\Meu Drive\IPASGO\1.RELATORIO MEDICO E CLINICO")
-
-           
             nome_paciente = self.get_excel_value('PACIENTE')
             id_paciente = self.get_excel_value('CARTEIRA')
 
@@ -676,19 +673,16 @@ class IpasgoAutomation(BaseAutomation):
 
             # Constrói o nome da pasta do paciente
             patient_folder_name = f"{nome_paciente}-{id_paciente}"
-
-            # Constrói o caminho completo para a pasta do paciente
             patient_folder_path = base_path / patient_folder_name
 
             logging.info(f"Caminho da pasta do paciente: {patient_folder_path}")
 
-            
             if not patient_folder_path.is_dir():
                 logging.error(f"A pasta do paciente '{patient_folder_path}' não foi encontrada.")
                 return
 
-            # Encontra os arquivos do paciente, focando apenas em RM
-            arquivos_rm, _, _, _ = encontrar_arquivos_paciente(patient_folder_path, id_paciente, nome_paciente)
+            # Chamada corrigida da função
+            arquivos_rm, _, _, _ = encontrar_arquivos_paciente(patient_folder_path, id_paciente)
 
             if not arquivos_rm:
                 logging.error("Nenhum arquivo RM correspondente foi encontrado para o paciente.")
@@ -696,23 +690,17 @@ class IpasgoAutomation(BaseAutomation):
 
             logging.info(f"Arquivos RM encontrados: {arquivos_rm}")
 
-            
             for arquivo_para_upload in arquivos_rm:
-                
                 input_file = self.driver.find_element(By.CSS_SELECTOR, 'input[type="file"]')
                 logging.info("Elemento de upload encontrado.")
 
-                
                 input_file.send_keys(str(arquivo_para_upload))
                 logging.info(f"Arquivo '{arquivo_para_upload}' selecionado com sucesso.")
 
                 time.sleep(2)
+                break
 
-                break  
-
-            
             self.safe_click((By.XPATH, '//*[@id="upload_form"]/div/input[2]'))
-
             time.sleep(2)
 
         except Exception as e:
@@ -741,37 +729,29 @@ class IpasgoAutomation(BaseAutomation):
 
     def Anexando_RC(self):
         try:
-            
             base_path = Path(r"G:\Meu Drive\IPASGO\1.RELATORIO MEDICO E CLINICO")
-
-            
             nome_paciente = self.get_excel_value('PACIENTE')
             id_paciente = self.get_excel_value('CARTEIRA')
-            
-            
             cbo = self.get_excel_value('CBO')
-            cbo = str(int(float(cbo)))  
+            cbo = str(int(float(cbo)))
 
             if not nome_paciente or not id_paciente or not cbo:
                 logging.error("Falha ao obter o nome, ID do paciente ou CBO da planilha.")
                 return
             logging.info(f"Paciente: {nome_paciente}, ID: {id_paciente}, CBO: {cbo}")
 
-            
             patient_folder_name = f"{nome_paciente}-{id_paciente}"
-
-            
             patient_folder_path = base_path / patient_folder_name
 
             logging.info(f"Caminho da pasta do paciente: {patient_folder_path}")
 
-            
             if not patient_folder_path.is_dir():
                 logging.error(f"A pasta do paciente '{patient_folder_path}' não foi encontrada.")
                 return
 
-            
-            _, arquivos_rc_fono, arquivos_rc_psi, arquivos_rc_to = encontrar_arquivos_paciente(patient_folder_path, id_paciente, nome_paciente)
+            # Chamada corrigida da função
+            _, arquivos_rc_fono, arquivos_rc_psi, arquivos_rc_to = encontrar_arquivos_paciente(patient_folder_path, id_paciente)
+
 
             
             if cbo == "251510":  
