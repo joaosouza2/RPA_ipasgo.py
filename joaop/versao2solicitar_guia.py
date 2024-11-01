@@ -329,7 +329,7 @@ class IpasgoAutomation(BaseAutomation):
             # Salvando e confirmando a solicitação
             self.salvar_confirmar()
 
-            self.salvar_anotar_numero()  # Captura e salva o número da guia
+            #self.salvar_anotar_numero()  # Captura e salva o número da guia
 
         except Exception as e:
             logging.error(f"Erro ao processar a linha {self.row_index + 2}: {e}")
@@ -827,84 +827,87 @@ class IpasgoAutomation(BaseAutomation):
 
     def salvar_confirmar(self):
         try:
+            # Tenta clicar no botão "Salvar"
             salvar_button = self.driver.find_element(By.XPATH, '//*[@id="btnGravar"]')
             self.driver.execute_script("arguments[0].scrollIntoView(true);", salvar_button)
             time.sleep(1)
             salvar_button.click()
+            logging.info("Botão 'Salvar' clicado com sucesso.")
+            time.sleep(1)  # Aguarda um momento para a página processar
 
-            WebDriverWait(self.driver, 10).until(
-                EC.presence_of_element_located((By.XPATH, '/html/body/div[8]/div[3]/div/button[1]'))
-            )
-            logging.info("Modal de confirmação detectado.")
+            # Tenta clicar no botão "Confirmar"
+            try:
+                # Espera até que o botão "Confirmar" esteja presente
+                WebDriverWait(self.driver, 10).until(
+                    EC.presence_of_element_located((By.XPATH, '/html/body/div[8]/div[3]/div/button[1]'))
+                )
+                confirmar_button = self.driver.find_element(By.XPATH, '/html/body/div[8]/div[3]/div/button[1]')
+                self.driver.execute_script("arguments[0].scrollIntoView(true);", confirmar_button)
+                time.sleep(1)
+                confirmar_button.click()
+                logging.info("Botão 'Confirmar' clicado com sucesso.")
 
-            confirmar_button = self.driver.find_element(By.XPATH, '/html/body/div[8]/div[3]/div/button[1]')
-            self.driver.execute_script("arguments[0].scrollIntoView(true);", confirmar_button)
-            time.sleep(1)
-            confirmar_button.click()
+                # Chama a função para capturar e salvar o número da guia
+                self.salvar_anotar_numero()
 
-            # Definir os elementos de erro
-            errors_found = []
-            for error_name, error_xpath in self.ERROR_ELEMENTS.items():
-                try:
-                    elemento = self.driver.find_element(By.XPATH, error_xpath)
-                    if elemento.is_displayed():
-                        erro_texto = elemento.text.strip()
-                        errors_found.append(f"{error_name}: {erro_texto}")
-                        logging.warning(f"Erro detectado - {error_name}: {erro_texto}")
-                except NoSuchElementException:
-                    continue
-
-            if errors_found:
-                
-                try:
-                    nome_paciente = self.df['PACIENTE'].iloc[self.row_index]
-                except KeyError:
-                    nome_paciente = 'Nome do paciente não encontrado'
-
-                
-                erros_formatados = "; ".join(errors_found)
-
-                # Salvar no arquivo TXT
-                current_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-                with open(self.txt_file_path, 'a', encoding='utf-8') as f:
-                    f.write(f"{current_time} - Paciente: {nome_paciente} - Erros: {erros_formatados}\n")
-
-                logging.info(f"Erros salvos no arquivo 'numeros_guias.txt': {erros_formatados}")
-
-                self.salvar_numero_no_excel(lista_erros=erros_formatados)
-            
-                time.sleep(5)
-
-                self.driver.refresh()# Recarregar a página
-                logging.info("Página recarregada devido aos erros encontrados.")
-
-                return  # Sai da função para que o 'process_row' possa continuar gerenciando a troca de linha ao final do código
+            except Exception as e:
+                logging.error(f"Não foi possível clicar no botão 'Confirmar': {e}")
+                # Chama a função para tratar os erros
+                self.tratar_erros()
 
         except Exception as e:
-            logging.error(f"Erro ao tentar salvar e confirmar: {e}")
+            logging.error(f"Erro ao clicar no botão 'Salvar': {e}")
+            # Opcionalmente, você pode chamar a função tratar_erros aqui ou tomar outra ação
             
+
+
+    def tratar_erros(self):
+        # Função para lidar com a captura e armazenamento de erros
+        self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+        time.sleep(2)
+
+        errors_found = []
+        for error_name, error_xpath in self.ERROR_ELEMENTS.items():
+            try:
+                elemento = self.driver.find_element(By.XPATH, error_xpath)
+                #self.driver.execute_script("arguments[0].scrollIntoView(true);", elemento)
+                #time.sleep(0.5)  # Aguarda para garantir que o elemento esteja visível
+                if elemento.is_displayed():
+                    erro_texto = elemento.text.strip()
+                    errors_found.append(f"{erro_texto}")
+                    logging.warning(f"Erro detectado - {error_name}: {erro_texto}")
+            except NoSuchElementException:
+                continue  # Se o elemento não for encontrado, passa para o próximo
+
+        if errors_found:
+            # Processa e salva os erros encontrados
             try:
                 nome_paciente = self.df['PACIENTE'].iloc[self.row_index]
             except KeyError:
                 nome_paciente = 'Nome do paciente não encontrado'
 
+            erros_formatados = "; ".join(errors_found)
             current_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-            function_name = get_current_function_name()
+
+            # Salva os erros no arquivo TXT
             with open(self.txt_file_path, 'a', encoding='utf-8') as f:
-                f.write(f"{current_time} - Paciente: {nome_paciente} - Erro na função {function_name}\n")
+                f.write(f"{current_time} - Paciente: {nome_paciente} - Erros: {erros_formatados}\n")
 
-            
-            self.salvar_numero_no_excel(lista_erros=f"Erro na função {function_name}")
+            logging.info(f"Erros salvos no arquivo 'numeros_guias.txt': {erros_formatados}")
 
-            
-            time.sleep(5)
+            # Salva os erros no Excel
+            self.salvar_numero_no_excel(lista_erros=erros_formatados)
 
-            
+            time.sleep(2)
+
+            # Recarrega a página para processar a próxima linha
             self.driver.refresh()
-            logging.info("Página recarregada devido a erro inesperado.")
+            logging.info("Página recarregada devido aos erros encontrados.")
 
-            # Levanta a exceção para ser tratada no process_row
-            raise e
+        else:
+            logging.error("Nenhum erro encontrado, mas o botão 'Confirmar' não pôde ser clicado.")
+            # Opcionalmente, você pode tomar alguma ação aqui, como levantar uma exceção
+
 
 
 
