@@ -75,9 +75,6 @@ def encontrar_arquivos_paciente(caminho_pasta, id_paciente):
     return arquivos_rm, arquivos_rc_fono, arquivos_rc_psi, arquivos_rc_to
 
 
-def get_current_function_name():
-    """Retorna o nome da função que chamou esta função."""
-    return inspect.stack()[1].function  # Função auxiliar para obter o nome da função atual
 
 
 class BaseAutomation:
@@ -306,7 +303,7 @@ class IpasgoAutomation(BaseAutomation):
             self.acessar_procedimentos()
 
             # Clicando em inserir
-            self.clicar_inserir_e_preencher()
+           # self.clicar_inserir_e_preencher()
 
             # Preenchendo campo dos profissionais
             self.preencher_campo_profissionais()
@@ -344,12 +341,11 @@ class IpasgoAutomation(BaseAutomation):
                 especialidade = 'Especialidade não encontrada'
             # Salva a mensagem de erro no arquivo txt
             current_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-            function_name = get_current_function_name()
+            
             with open(self.txt_file_path, 'a', encoding='utf-8') as f:
-                f.write(f"{current_time} - Paciente: {nome_paciente} - Especialidade: {especialidade}- Erro na função {function_name}\n")
+                f.write(f"{current_time} - Paciente: {nome_paciente} - Especialidade: {especialidade}- Erro ao processar linha.\n")
 
-           
-            self.salvar_numero_no_excel(lista_erros=f"Erro na função {function_name}")
+            self.salvar_numero_no_excel(lista_erros=f"Erro ao processar a linha")
 
             time.sleep(5)
 
@@ -363,12 +359,13 @@ class IpasgoAutomation(BaseAutomation):
             alert_present = WebDriverWait(self.driver, 10).until(
                 EC.presence_of_element_located((By.ID, "noty_top_layout_container"))
             )
+
             if alert_present:
                 fechar_button = self.driver.find_element(By.ID, "button-1")
                 fechar_button.click()
                 time.sleep(2)
-        except Exception as e:
-            logging.error(f"Erro ao lidar com o alerta: {e}")
+        except Exception:
+            pass
 
 
 
@@ -443,8 +440,8 @@ class IpasgoAutomation(BaseAutomation):
 
             time.sleep(3)
 
-        except Exception as e:
-            logging.error(f"Erro ao preencher o campo 'Caráter do Atendimento': {e}")
+        except Exception:
+            pass
 
 
     def data_solicitacao(self):
@@ -484,8 +481,8 @@ class IpasgoAutomation(BaseAutomation):
             else:
                 logging.info(f"O campo 'Data de Solicitação' foi verificado e contém o valor correto.")
 
-        except Exception as e:
-            logging.error(f"Erro ao preencher o campo 'Data de Solicitação': {e}")
+        except Exception:
+            pass
 
 
     def preencher_indicacao_clinica(self):
@@ -499,8 +496,8 @@ class IpasgoAutomation(BaseAutomation):
             time.sleep(2)
             logging.info(f"Campo 'Indicação Clínica' preenchido com sucesso com o valor: {indicacao_clinica}")
 
-        except Exception as e:
-            logging.error(f"Erro ao preencher o campo 'Indicação Clínica': {e}")
+        except Exception:
+            pass
 
 
 
@@ -518,8 +515,8 @@ class IpasgoAutomation(BaseAutomation):
 
             time.sleep(2)
 
-        except Exception as e:
-            logging.error(f"Erro ao abrir a aba 'Procedimentos': {e}")
+        except Exception:
+            pass
 
 
 
@@ -561,8 +558,8 @@ class IpasgoAutomation(BaseAutomation):
 
             time.sleep(1)
 
-        except Exception as e:
-            logging.error(f"Erro ao preencher o procedimento: {e}")
+        except Exception:
+            pass
 
 
 
@@ -640,8 +637,8 @@ class IpasgoAutomation(BaseAutomation):
             confirmar_button = self.acessar_com_reattempt((By.XPATH, '//*[@id="confirmarEdicaoDeProfissional"]'))
             confirmar_button.click()
 
-        except Exception as e:
-            logging.error(f"Erro ao preencher os campos dos profissionais: {e}")
+        except Exception:
+            pass
 
 
 
@@ -665,8 +662,8 @@ class IpasgoAutomation(BaseAutomation):
 
             logging.info(f"Campo 'Observação/Justificativa' preenchido com sucesso com o valor: {justificativa}")
 
-        except Exception as e:
-            logging.error(f"Erro ao preencher o campo 'Observação/Justificativa': {e}")
+        except Exception:
+            pass
 
 
 
@@ -684,8 +681,8 @@ class IpasgoAutomation(BaseAutomation):
 
             tipo_anexo_dropdown.send_keys(Keys.RETURN)
 
-        except Exception as e:
-            logging.error(f"Erro ao selecionar o tipo de anexo: {e}")
+        except Exception:
+            pass
 
 
 
@@ -732,8 +729,8 @@ class IpasgoAutomation(BaseAutomation):
             self.safe_click((By.XPATH, '//*[@id="upload_form"]/div/input[2]'))
             time.sleep(2)
 
-        except Exception as e:
-            logging.error(f"Erro ao fazer upload dos arquivos RM do paciente: {e}")
+        except Exception:
+            pass
 
 
 
@@ -752,8 +749,8 @@ class IpasgoAutomation(BaseAutomation):
 
             time.sleep(1)
             
-        except Exception as e:
-            logging.error(f"Erro ao selecionar o tipo de anexo: {e}")
+        except Exception:
+            pass
 
 
     def Anexando_RC(self):
@@ -820,8 +817,8 @@ class IpasgoAutomation(BaseAutomation):
             self.safe_click((By.XPATH, '//*[@id="upload_form"]/div/input[2]'))
             time.sleep(1)
 
-        except Exception as e:
-            logging.error(f"Erro ao fazer upload dos arquivos RC do paciente: {e}")
+        except Exception:
+            pass
 
 
 
@@ -850,13 +847,13 @@ class IpasgoAutomation(BaseAutomation):
                 # Chama a função para capturar e salvar o número da guia
                 self.salvar_anotar_numero()
 
-            except Exception as e:
-                logging.error(f"Não foi possível clicar no botão 'Confirmar': {e}")
+            except Exception:
+                logging.error(f"Não foi possível clicar no botão 'Confirmar'")
                 # Chama a função para tratar os erros
                 self.tratar_erros()
 
-        except Exception as e:
-            logging.error(f"Erro ao clicar no botão 'Salvar': {e}")
+        except Exception:
+            logging.error(f"Erro ao clicar no botão 'Salvar'")
             # Opcionalmente, você pode chamar a função tratar_erros aqui ou tomar outra ação
             
 
@@ -979,12 +976,11 @@ class IpasgoAutomation(BaseAutomation):
                         nome_paciente = 'Nome do paciente não encontrado'
                     
                     # Escreve a mensagem de erro no arquivo txt
-                    function_name = get_current_function_name()
                     with open(self.txt_file_path, 'a', encoding='utf-8') as f:
-                        f.write(f"{current_time} - Paciente: {nome_paciente} - Erro na função {function_name}\n")
+                        f.write(f"{current_time} - Paciente: {nome_paciente} - Erro ao processar a linha\n")
                     
                     
-                    self.salvar_numero_no_excel(lista_erros=f"Erro na função {function_name}")
+                    self.salvar_numero_no_excel(lista_erros=f"Erro ao processar a linha")
                     raise e
 
 
