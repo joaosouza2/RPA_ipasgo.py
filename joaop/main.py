@@ -24,6 +24,10 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 
 
 def encontrar_arquivos_paciente(caminho_pasta, id_paciente):
+    #############################################################################################
+    # Busca de relatórios RM e RC para anexo de documentos dentro da automação, englobando os casos
+    # em que o id_paciente pode ou não ter zero à esquerda nos nomes dos arquivos.
+    #############################################################################################
     p = Path(caminho_pasta)
 
     arquivos_rm = []
@@ -31,13 +35,24 @@ def encontrar_arquivos_paciente(caminho_pasta, id_paciente):
     arquivos_rc_psi = []
     arquivos_rc_to = []
 
-    # Padrão para arquivos RM usando expressões regulares, permitindo espaços e traços opcionais
-    padrao_rm = rf'(?i)^RM[\s-]*{id_paciente}.*\..+$'
+    # Gerar as possíveis variações do id_paciente (com e sem zero à esquerda)
+    id_paciente_variations = {id_paciente}
+    id_paciente_no_leading_zeros = id_paciente.lstrip('0')
+    if id_paciente_no_leading_zeros != id_paciente:
+        id_paciente_variations.add(id_paciente_no_leading_zeros)
+    else:
+        id_paciente_variations.add('0' + id_paciente)
 
-    # Padrões para os três tipos de documentação usando expressões regulares, permitindo espaços e traços opcionais
-    padrao_rc_fono = rf'(?i)^RC[\s-]*{id_paciente}[\s-]*.*FONO.*\..+$'
-    padrao_rc_psi = rf'(?i)^RC[\s-]*{id_paciente}[\s-]*.*PSI.*\..+$'
-    padrao_rc_to = rf'(?i)^RC[\s-]*{id_paciente}[\s-]*.*TO.*\..+$'
+    # Criar padrões de regex que considerem ambas as variações do id_paciente
+    id_paciente_pattern = '|'.join(re.escape(id_var) for id_var in id_paciente_variations)
+
+    # Padrão para arquivos RM usando expressões regulares, permitindo espaços e traços opcionais
+    padrao_rm = rf'(?i)^RM[\s-]*({id_paciente_pattern}).*\..+$'
+
+    # Padrões para os três tipos de documentação usando expressões regulares, permitindo espaços e traços
+    padrao_rc_fono = rf'(?i)^RC[\s-]*({id_paciente_pattern})[\s-]*.*FONO.*\..+$'
+    padrao_rc_psi = rf'(?i)^RC[\s-]*({id_paciente_pattern})[\s-]*.*PSI.*\..+$'
+    padrao_rc_to = rf'(?i)^RC[\s-]*({id_paciente_pattern})[\s-]*.*TO.*\..+$'
 
     logging.info(f"Verificando arquivos na pasta: {caminho_pasta}")
 
@@ -71,10 +86,6 @@ def encontrar_arquivos_paciente(caminho_pasta, id_paciente):
     return arquivos_rm, arquivos_rc_fono, arquivos_rc_psi, arquivos_rc_to
 
 
-
-def get_current_function_name():
-    """Retorna o nome da função que chamou esta função."""
-    return inspect.stack()[1].function  # Função auxiliar para obter o nome da função atual
 
 
 class BaseAutomation:
@@ -162,9 +173,9 @@ class IpasgoAutomation(BaseAutomation):
         self.row_index = self.start_row
 
     
-        self.file_path = r"C:\Users\SUPERVISÃO ADM\Desktop\SOLICITACOES_AUTORIZACAO_FACPLAN -DIARIO-11-2024.xlsx"
+        self.file_path = r"C:\Users\SUPERVISÃO ADM\Desktop\SOLICITACOES_AUTORIZACAO_FACPLAN_ATUALIZADO.xlsx"
         self.sheet_name = 'AUTORIZACOES'
-        self.txt_file_path = os.path.join(r"C:\Users\SUPERVISÃO ADM\.git\RPA_ipasgo.py\numeros_guias.txt")  # Caminho do arquivo txt
+        self.txt_file_path = os.path.join(r"C:\Users\SUPERVISÃO ADM\Desktop\números_guias_test.txt")  # Caminho do arquivo txt
 
         # Ler o arquivo Excel original
         self.df = pd.read_excel(
@@ -294,7 +305,7 @@ class IpasgoAutomation(BaseAutomation):
             # Preenche o tipo de atendimento e quantas guias serão solicitadas
             self.preencher_carater_atendimento()
 
-            #self.data_solicitacao()
+           #self.data_solicitacao()
 
             # Preenche o campo 'Indicação Clínica'
             self.preencher_indicacao_clinica()
@@ -311,6 +322,13 @@ class IpasgoAutomation(BaseAutomation):
             # Abre a aba 'Observações/Justificativa'
             self.preencher_observacao_justificativa()
 
+            #encontra o caminho dos arquivos para anexo,
+            #antes das funções de anexo para evitar erro por sobreposição de lementos html
+            #caso não encontrada, salva o erro no excel 
+            if not self.preparar_pasta_paciente():
+                self.salvar_numero_no_excel(lista_erros="Pasta do paciente não encontrada")
+                return 
+
             # Anexa o documento
             self.selecionar_pedido_medico()
 
@@ -326,7 +344,7 @@ class IpasgoAutomation(BaseAutomation):
             # Salvando e confirmando a solicitação
             self.salvar_confirmar()
 
-            self.salvar_anotar_numero()  # Captura e salva o número da guia
+            #self.salvar_anotar_numero()  # Captura e salva o número da guia
 
         except Exception as e:
             logging.error(f"Erro ao processar a linha {self.row_index + 2}: {e}")
@@ -341,12 +359,11 @@ class IpasgoAutomation(BaseAutomation):
                 especialidade = 'Especialidade não encontrada'
             # Salva a mensagem de erro no arquivo txt
             current_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-            function_name = get_current_function_name()
+            
             with open(self.txt_file_path, 'a', encoding='utf-8') as f:
-                f.write(f"{current_time} - Paciente: {nome_paciente} - Especialidade: {especialidade}- Erro na função {function_name}\n")
+                f.write(f"{current_time} - Paciente: {nome_paciente} - Especialidade: {especialidade}- Erro ao processar linha.\n")
 
-           
-            self.salvar_numero_no_excel(lista_erros=f"Erro na função {function_name}")
+            self.salvar_numero_no_excel(lista_erros=f"Erro ao processar a linha")
 
             time.sleep(5)
 
@@ -360,45 +377,72 @@ class IpasgoAutomation(BaseAutomation):
             alert_present = WebDriverWait(self.driver, 10).until(
                 EC.presence_of_element_located((By.ID, "noty_top_layout_container"))
             )
+
             if alert_present:
                 fechar_button = self.driver.find_element(By.ID, "button-1")
                 fechar_button.click()
                 time.sleep(2)
-        except Exception as e:
-            logging.error(f"Erro ao lidar com o alerta: {e}")
+        except Exception:
+            pass
 
 
 
     def preencher_numero_carteira(self):
-        """Preenche o campo 'Número da Carteira' com dados do Excel e valida o nome do beneficiário."""
-        try:    
-            numero_carteira = self.get_excel_value('CARTEIRA')
-            nome_esperado = self.get_excel_value('PACIENTE')
+        """Preenche o campo 'Número da Carteira' através do popup e valida o nome do beneficiário."""
+        max_attempts = 2
+        for attempt in range(max_attempts):
+            try:
+                numero_carteira = self.get_excel_value('PADRAO')
+                nome_esperado = self.get_excel_value('PACIENTE')
 
-            numero_carteira_input = self.acessar_com_reattempt((By.ID, "numeroDaCarteira"))
-            numero_carteira_input.send_keys(numero_carteira)
-            logging.info(f"Campo 'Número da Carteira' preenchido com sucesso com o valor: {numero_carteira}")
-            time.sleep(2)
-            numero_carteira_input.send_keys(Keys.ARROW_DOWN)
-            numero_carteira_input.send_keys(Keys.ENTER)
-            
+                # Clicar no elemento para abrir o popup
+                elemento_abrir_popup = self.acessar_com_reattempt((By.XPATH, '//*[@id="div_numeroDaCarteira"]/div/i'))
+                elemento_abrir_popup.click()
+                logging.info("Popup para inserção do número da carteira aberto.")
 
-            
-            WebDriverWait(self.driver, 180).until(
-                lambda driver: driver.find_element(By.XPATH, '//*[@id="nomeDoBeneficiario"]').get_attribute('value') != ''
-            )
+                # Aguarda o popup aparecer
+                WebDriverWait(self.driver, 15).until(
+                    EC.visibility_of_element_located((By.XPATH, '//*[@id="cartao"]'))
+                )
 
-            # Valida se o nome do beneficiário é o esperado
-            nome_preenchido = self.driver.find_element(By.XPATH, '//*[@id="nomeDoBeneficiario"]').get_attribute('value')
-            if nome_preenchido.strip().lower() != nome_esperado.strip().lower():
-                logging.error("O nome do beneficiário preenchido não corresponde ao esperado.")
-                return
+                # Preenche o campo no popup
+                campo_cartao = self.acessar_com_reattempt((By.XPATH, '//*[@id="cartao"]'))
+                campo_cartao.clear()
+                campo_cartao.send_keys(numero_carteira)
+                campo_cartao.send_keys(Keys.ENTER)
 
+                # Verifica se o nome do beneficiário foi preenchido corretamente
+                WebDriverWait(self.driver, 180).until(
+                    lambda driver: driver.find_element(By.XPATH, '//*[@id="nomeDoBeneficiario"]').get_attribute('value') != ''
+                )
 
-        except TimeoutException:
-            logging.error("Tempo limite excedido ao esperar pela conclusão da etapa do token.")
-        except Exception as e:
-            logging.error(f"Erro ao preencher o campo 'Número da Carteira': {e}")
+                # Valida se o nome do beneficiário é o esperado
+                nome_preenchido = self.driver.find_element(By.XPATH, '//*[@id="nomeDoBeneficiario"]').get_attribute('value')
+                if nome_preenchido.strip().lower() != nome_esperado.strip().lower():
+                    logging.error("O nome do beneficiário preenchido não corresponde ao esperado.")
+                    if attempt < max_attempts - 1:
+                        logging.info(f"Tentativa {attempt + 1} falhou. Tentando novamente.")
+                        continue  # Tentar novamente
+                    else:
+                        raise Exception("Falha ao preencher o número da carteira após múltiplas tentativas.")
+                else:
+                    logging.info("Nome do beneficiário validado com sucesso.")
+                    break  # Sai do loop, pois teve sucesso
+
+            except TimeoutException:
+                logging.error("Tempo limite excedido ao esperar pelo popup ou pelo preenchimento do nome do beneficiário.")
+                if attempt < max_attempts - 1:
+                    logging.info(f"Tentativa {attempt + 1} falhou. Tentando novamente.")
+                    continue  # Tentar novamente
+                else:
+                    raise
+            except Exception as e:
+                logging.error(f"Erro ao preencher o campo 'Número da Carteira': {e}")
+                if attempt < max_attempts - 1:
+                    logging.info(f"Tentativa {attempt + 1} falhou. Tentando novamente.")
+                    continue  # Tentar novamente
+                else:
+                    raise
 
 
 
@@ -414,8 +458,8 @@ class IpasgoAutomation(BaseAutomation):
 
             time.sleep(3)
 
-        except Exception as e:
-            logging.error(f"Erro ao preencher o campo 'Caráter do Atendimento': {e}")
+        except Exception:
+            pass
 
 
     def data_solicitacao(self):
@@ -455,8 +499,8 @@ class IpasgoAutomation(BaseAutomation):
             else:
                 logging.info(f"O campo 'Data de Solicitação' foi verificado e contém o valor correto.")
 
-        except Exception as e:
-            logging.error(f"Erro ao preencher o campo 'Data de Solicitação': {e}")
+        except Exception:
+            pass
 
 
     def preencher_indicacao_clinica(self):
@@ -470,8 +514,8 @@ class IpasgoAutomation(BaseAutomation):
             time.sleep(2)
             logging.info(f"Campo 'Indicação Clínica' preenchido com sucesso com o valor: {indicacao_clinica}")
 
-        except Exception as e:
-            logging.error(f"Erro ao preencher o campo 'Indicação Clínica': {e}")
+        except Exception:
+            pass
 
 
 
@@ -489,8 +533,8 @@ class IpasgoAutomation(BaseAutomation):
 
             time.sleep(2)
 
-        except Exception as e:
-            logging.error(f"Erro ao abrir a aba 'Procedimentos': {e}")
+        except Exception:
+            pass
 
 
 
@@ -532,8 +576,8 @@ class IpasgoAutomation(BaseAutomation):
 
             time.sleep(1)
 
-        except Exception as e:
-            logging.error(f"Erro ao preencher o procedimento: {e}")
+        except Exception:
+            pass
 
 
 
@@ -611,8 +655,8 @@ class IpasgoAutomation(BaseAutomation):
             confirmar_button = self.acessar_com_reattempt((By.XPATH, '//*[@id="confirmarEdicaoDeProfissional"]'))
             confirmar_button.click()
 
-        except Exception as e:
-            logging.error(f"Erro ao preencher os campos dos profissionais: {e}")
+        except Exception:
+            pass
 
 
 
@@ -636,8 +680,48 @@ class IpasgoAutomation(BaseAutomation):
 
             logging.info(f"Campo 'Observação/Justificativa' preenchido com sucesso com o valor: {justificativa}")
 
+        except Exception:
+            pass
+    
+
+
+    def preparar_pasta_paciente(self):
+        """Prepara o caminho para a pasta do paciente, tentando com o ID original e com um zero adicionado no início."""
+        try:
+            base_path = Path(r"G:\Meu Drive\IPASGO\1.RELATORIO MEDICO E CLINICO")
+            nome_paciente = self.get_excel_value('PACIENTE')
+            id_paciente = self.get_excel_value('CARTEIRA')
+
+            if not nome_paciente or not id_paciente:
+                logging.error("Falha ao obter o nome ou o ID do paciente da planilha.")
+                return False
+            logging.info(f"Paciente: {nome_paciente}, ID: {id_paciente}")
+
+            # Primeira tentativa: ID original
+            patient_folder_name = f"{nome_paciente}-{id_paciente}"
+            patient_folder_path = base_path / patient_folder_name
+            if patient_folder_path.is_dir():
+                logging.info(f"Pasta do paciente encontrada: {patient_folder_path}")
+                self.patient_folder_path = patient_folder_path
+                return True
+            else:
+                # Segunda tentativa: Adiciona zero à esquerda
+                id_paciente_modificado = '0' + str(id_paciente)
+                patient_folder_name = f"{nome_paciente}-{id_paciente_modificado}"
+                patient_folder_path = base_path / patient_folder_name
+                if patient_folder_path.is_dir():
+                    logging.info(f"Pasta do paciente encontrada com ID modificado: {patient_folder_path}")
+                    self.patient_folder_path = patient_folder_path
+                    return True
+                else:
+                    logging.error("Pasta do paciente não encontrada nas duas tentativas.")
+                    return False
+
         except Exception as e:
-            logging.error(f"Erro ao preencher o campo 'Observação/Justificativa': {e}")
+            logging.error(f"Erro ao preparar a pasta do paciente: {e}")
+            return False
+
+
 
 
 
@@ -655,34 +739,22 @@ class IpasgoAutomation(BaseAutomation):
 
             tipo_anexo_dropdown.send_keys(Keys.RETURN)
 
-        except Exception as e:
-            logging.error(f"Erro ao selecionar o tipo de anexo: {e}")
+        except Exception:
+            pass
 
 
 
     def Anexando_RM(self):
+        """Anexa o Relatório Médico (RM) do paciente."""
         try:
-            base_path = Path(r"G:\Meu Drive\IPASGO\1.RELATORIO MEDICO E CLINICO")
-            nome_paciente = self.get_excel_value('PACIENTE')
+            if not hasattr(self, 'patient_folder_path'):
+                logging.error("O caminho da pasta do paciente não foi preparado.")
+                return
+
             id_paciente = self.get_excel_value('CARTEIRA')
 
-            if not nome_paciente or not id_paciente:
-                logging.error("Falha ao obter o nome ou o ID do paciente da planilha.")
-                return
-            logging.info(f"Paciente: {nome_paciente}, ID: {id_paciente}")
-
-            # Constrói o nome da pasta do paciente
-            patient_folder_name = f"{nome_paciente}-{id_paciente}"
-            patient_folder_path = base_path / patient_folder_name
-
-            logging.info(f"Caminho da pasta do paciente: {patient_folder_path}")
-
-            if not patient_folder_path.is_dir():
-                logging.error(f"A pasta do paciente '{patient_folder_path}' não foi encontrada.")
-                return
-
-            # Chamada corrigida da função
-            arquivos_rm, _, _, _ = encontrar_arquivos_paciente(patient_folder_path, id_paciente)
+            # Chamada da função para encontrar os arquivos RM
+            arquivos_rm, _, _, _ = encontrar_arquivos_paciente(self.patient_folder_path, id_paciente)
 
             if not arquivos_rm:
                 logging.error("Nenhum arquivo RM correspondente foi encontrado para o paciente.")
@@ -698,13 +770,14 @@ class IpasgoAutomation(BaseAutomation):
                 logging.info(f"Arquivo '{arquivo_para_upload}' selecionado com sucesso.")
 
                 time.sleep(2)
-                break
+                break  # Anexa apenas o primeiro arquivo encontrado
 
             self.safe_click((By.XPATH, '//*[@id="upload_form"]/div/input[2]'))
             time.sleep(2)
 
         except Exception as e:
             logging.error(f"Erro ao fazer upload dos arquivos RM do paciente: {e}")
+            raise
 
 
 
@@ -723,44 +796,36 @@ class IpasgoAutomation(BaseAutomation):
 
             time.sleep(1)
             
-        except Exception as e:
-            logging.error(f"Erro ao selecionar o tipo de anexo: {e}")
+        except Exception:
+            pass
 
 
     def Anexando_RC(self):
+        """Anexa o Relatório Clínico (RC) do paciente."""
         try:
-            base_path = Path(r"G:\Meu Drive\IPASGO\1.RELATORIO MEDICO E CLINICO")
-            nome_paciente = self.get_excel_value('PACIENTE')
+            if not hasattr(self, 'patient_folder_path'):
+                logging.error("O caminho da pasta do paciente não foi preparado.")
+                return
+
             id_paciente = self.get_excel_value('CARTEIRA')
             cbo = self.get_excel_value('CBO')
             cbo = str(int(float(cbo)))
 
-            if not nome_paciente or not id_paciente or not cbo:
-                logging.error("Falha ao obter o nome, ID do paciente ou CBO da planilha.")
+            if not cbo:
+                logging.error("Falha ao obter o CBO da planilha.")
                 return
-            logging.info(f"Paciente: {nome_paciente}, ID: {id_paciente}, CBO: {cbo}")
+            logging.info(f"CBO: {cbo}")
 
-            patient_folder_name = f"{nome_paciente}-{id_paciente}"
-            patient_folder_path = base_path / patient_folder_name
+            # Chamada da função para encontrar os arquivos RC
+            _, arquivos_rc_fono, arquivos_rc_psi, arquivos_rc_to = encontrar_arquivos_paciente(self.patient_folder_path, id_paciente)
 
-            logging.info(f"Caminho da pasta do paciente: {patient_folder_path}")
-
-            if not patient_folder_path.is_dir():
-                logging.error(f"A pasta do paciente '{patient_folder_path}' não foi encontrada.")
-                return
-
-            # Chamada corrigida da função
-            _, arquivos_rc_fono, arquivos_rc_psi, arquivos_rc_to = encontrar_arquivos_paciente(patient_folder_path, id_paciente)
-
-
-            
-            if cbo == "251510":  
+            if cbo == "251510":  # Psicologia
                 arquivos_rc = arquivos_rc_psi
                 logging.info("CBO indica PSICOLOGIA. Selecionando arquivos PSI.")
-            elif cbo == "223810":  
+            elif cbo == "223810":  # Fonoaudiologia
                 arquivos_rc = arquivos_rc_fono
                 logging.info("CBO indica FONOAUDIOLOGIA. Selecionando arquivos FONO.")
-            elif cbo == "223905":  
+            elif cbo == "223905":  # Terapia Ocupacional
                 arquivos_rc = arquivos_rc_to
                 logging.info("CBO indica TERAPIA OCUPACIONAL. Selecionando arquivos TO.")
             else:
@@ -773,109 +838,108 @@ class IpasgoAutomation(BaseAutomation):
 
             logging.info(f"Arquivos RC encontrados: {arquivos_rc}")
 
-            
             for arquivo_para_upload in arquivos_rc:
-                
                 input_file = self.driver.find_element(By.CSS_SELECTOR, 'input[type="file"]')
                 logging.info("Elemento de upload encontrado.")
 
-                
                 input_file.send_keys(str(arquivo_para_upload))
                 logging.info(f"Arquivo '{arquivo_para_upload}' selecionado com sucesso.")
 
                 time.sleep(2)
+                break  # Anexa apenas o primeiro arquivo encontrado
 
-                break  
-
-            
             self.safe_click((By.XPATH, '//*[@id="upload_form"]/div/input[2]'))
             time.sleep(1)
 
         except Exception as e:
             logging.error(f"Erro ao fazer upload dos arquivos RC do paciente: {e}")
+            raise
 
 
 
     def salvar_confirmar(self):
         try:
+            # Tenta clicar no botão "Salvar"
             salvar_button = self.driver.find_element(By.XPATH, '//*[@id="btnGravar"]')
             self.driver.execute_script("arguments[0].scrollIntoView(true);", salvar_button)
             time.sleep(1)
             salvar_button.click()
+            logging.info("Botão 'Salvar' clicado com sucesso.")
+            time.sleep(1)  # Aguarda um momento para a página processar
 
-            WebDriverWait(self.driver, 10).until(
-                EC.presence_of_element_located((By.XPATH, '/html/body/div[8]/div[3]/div/button[1]'))
-            )
-            logging.info("Modal de confirmação detectado.")
+            # Tenta clicar no botão "Confirmar"
+            try:
+                # Espera até que o botão "Confirmar" esteja presente
+                WebDriverWait(self.driver, 10).until(
+                    EC.presence_of_element_located((By.XPATH, '/html/body/div[8]/div[3]/div/button[1]'))
+                )
+                confirmar_button = self.driver.find_element(By.XPATH, '/html/body/div[8]/div[3]/div/button[1]')
+                self.driver.execute_script("arguments[0].scrollIntoView(true);", confirmar_button)
+                time.sleep(1)
+                confirmar_button.click()
+                logging.info("Botão 'Confirmar' clicado com sucesso.")
 
-            confirmar_button = self.driver.find_element(By.XPATH, '/html/body/div[8]/div[3]/div/button[1]')
-            self.driver.execute_script("arguments[0].scrollIntoView(true);", confirmar_button)
-            time.sleep(1)
-            confirmar_button.click()
+                # Chama a função para capturar e salvar o número da guia
+                self.salvar_anotar_numero()
 
-            # Definir os elementos de erro
-            errors_found = []
-            for error_name, error_xpath in self.ERROR_ELEMENTS.items():
-                try:
-                    elemento = self.driver.find_element(By.XPATH, error_xpath)
-                    if elemento.is_displayed():
-                        erro_texto = elemento.text.strip()
-                        errors_found.append(f"{error_name}: {erro_texto}")
-                        logging.warning(f"Erro detectado - {error_name}: {erro_texto}")
-                except NoSuchElementException:
-                    continue
+            except Exception:
+                logging.error(f"Não foi possível clicar no botão 'Confirmar'")
+                # Chama a função para tratar os erros
+                self.tratar_erros()
 
-            if errors_found:
-                
-                try:
-                    nome_paciente = self.df['PACIENTE'].iloc[self.row_index]
-                except KeyError:
-                    nome_paciente = 'Nome do paciente não encontrado'
-
-                
-                erros_formatados = "; ".join(errors_found)
-
-                # Salvar no arquivo TXT
-                current_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-                with open(self.txt_file_path, 'a', encoding='utf-8') as f:
-                    f.write(f"{current_time} - Paciente: {nome_paciente} - Erros: {erros_formatados}\n")
-
-                logging.info(f"Erros salvos no arquivo 'numeros_guias.txt': {erros_formatados}")
-
-                self.salvar_numero_no_excel(lista_erros=erros_formatados)
+        except Exception:
+            logging.error(f"Erro ao clicar no botão 'Salvar'")
+            # Opcionalmente, você pode chamar a função tratar_erros aqui ou tomar outra ação
             
-                time.sleep(5)
 
-                self.driver.refresh()# Recarregar a página
-                logging.info("Página recarregada devido aos erros encontrados.")
 
-                return  # Sai da função para que o 'process_row' possa continuar gerenciando a troca de linha ao final do código
+    def tratar_erros(self):
+        # Função para lidar com a captura e armazenamento de erros
+        self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+        time.sleep(2)
 
-        except Exception as e:
-            logging.error(f"Erro ao tentar salvar e confirmar: {e}")
-            
+        errors_found = []
+        for error_name, error_xpath in self.ERROR_ELEMENTS.items():
+            try:
+                elemento = self.driver.find_element(By.XPATH, error_xpath)
+                #self.driver.execute_script("arguments[0].scrollIntoView(true);", elemento)
+                #time.sleep(0.5)  # Aguarda para garantir que o elemento esteja visível
+                if elemento.is_displayed():
+                    erro_texto = elemento.text.strip()
+                    errors_found.append(f"{erro_texto}")
+                    logging.warning(f"Erro detectado - {error_name}: {erro_texto}")
+            except NoSuchElementException:
+                continue  # Se o elemento não for encontrado, passa para o próximo
+
+        if errors_found:
+            # Processa e salva os erros encontrados
             try:
                 nome_paciente = self.df['PACIENTE'].iloc[self.row_index]
             except KeyError:
                 nome_paciente = 'Nome do paciente não encontrado'
 
+            erros_formatados = "; ".join(errors_found)
             current_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-            function_name = get_current_function_name()
+
+            # Salva os erros no arquivo TXT
             with open(self.txt_file_path, 'a', encoding='utf-8') as f:
-                f.write(f"{current_time} - Paciente: {nome_paciente} - Erro na função {function_name}\n")
+                f.write(f"{current_time} - Paciente: {nome_paciente} - Erros: {erros_formatados}\n")
 
-            
-            self.salvar_numero_no_excel(lista_erros=f"Erro na função {function_name}")
+            logging.info(f"Erros salvos no arquivo 'numeros_guias.txt': {erros_formatados}")
 
-            
-            time.sleep(5)
+            # Salva os erros no Excel
+            self.salvar_numero_no_excel(lista_erros=erros_formatados)
 
-            
+            time.sleep(2)
+
+            # Recarrega a página para processar a próxima linha
             self.driver.refresh()
-            logging.info("Página recarregada devido a erro inesperado.")
+            logging.info("Página recarregada devido aos erros encontrados.")
 
-            # Levanta a exceção para ser tratada no process_row
-            raise e
+        else:
+            logging.error("Nenhum erro encontrado, mas o botão 'Confirmar' não pôde ser clicado.")
+            # Opcionalmente, você pode tomar alguma ação aqui, como levantar uma exceção
+
 
 
 
@@ -890,20 +954,20 @@ class IpasgoAutomation(BaseAutomation):
                 WebDriverWait(self.driver, 30).until(
                     EC.presence_of_element_located((By.XPATH, '/html/body/div[8]'))
                 )
-                
+                time.sleep(2)
                 WebDriverWait(self.driver, 30).until(
                     EC.presence_of_element_located((By.XPATH, '//*[@id="ui-id-47"]'))
                 )
-                
+                time.sleep(2)
                 WebDriverWait(self.driver, 30).until(
                     EC.presence_of_element_located((By.XPATH, '//*[@id="dialogText"]'))
                 )
-                
+                time.sleep(2)
                 elemento_numero_guia = WebDriverWait(self.driver, 30).until(
                     EC.presence_of_element_located((By.XPATH, '//*[@id="dialogText"]/div[2]'))
                 )
 
-                
+                time.sleep(1)
                 numero_guia_completo = elemento_numero_guia.text.strip()
                 numero_guia = numero_guia_completo.split("Nº Guia Operadora:")[-1].strip()
                 logging.info(f"Número da Guia capturado: {numero_guia}")
@@ -947,12 +1011,11 @@ class IpasgoAutomation(BaseAutomation):
                         nome_paciente = 'Nome do paciente não encontrado'
                     
                     # Escreve a mensagem de erro no arquivo txt
-                    function_name = get_current_function_name()
                     with open(self.txt_file_path, 'a', encoding='utf-8') as f:
-                        f.write(f"{current_time} - Paciente: {nome_paciente} - Erro na função {function_name}\n")
+                        f.write(f"{current_time} - Paciente: {nome_paciente} - Erro ao processar a linha\n")
                     
                     
-                    self.salvar_numero_no_excel(lista_erros=f"Erro na função {function_name}")
+                    self.salvar_numero_no_excel(lista_erros=f"Erro ao processar a linha")
                     raise e
 
 
