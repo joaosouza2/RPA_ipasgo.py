@@ -92,7 +92,11 @@ class BaseAutomation:
     def __init__(self):
         """Configurações gerais do WebDriver."""
         self.options = Options()
-        self.options.add_argument("--start-maximized")
+        self.options.add_argument("--headless")  # Executa em modo headless
+        self.options.add_argument("--window-size=1366,768")  # Define a resolução de tela
+        self.options.add_argument("--disable-gpu")  # Desativa aceleração por GPU
+        self.options.add_argument("--no-sandbox")  # Ignora o sandboxing
+        self.options.add_argument("--disable-dev-shm-usage")  # Evita problemas de recursos compartilhados
         self.driver = webdriver.Chrome(options=self.options)
                        
 
@@ -173,7 +177,7 @@ class IpasgoAutomation(BaseAutomation):
         self.row_index = self.start_row
 
     
-        self.file_path = r"C:\Users\SUPERVISÃO ADM\Desktop\SOLICITACOES_AUTORIZACAO_FACPLAN_ATUALIZADO.xlsx"
+        self.file_path = r"C:\Users\SUPERVISÃO ADM\Desktop\SOLICITACOES_AUTORIZACAO_FACPLAN_ATUALIZADO_copia.xlsx"
         self.sheet_name = 'AUTORIZACOES'
         self.txt_file_path = os.path.join(r"C:\Users\SUPERVISÃO ADM\Desktop\números_guias_test.txt")  # Caminho do arquivo txt
 
@@ -225,7 +229,29 @@ class IpasgoAutomation(BaseAutomation):
             senha_input.send_keys(self.password)
 
             self.safe_click((By.ID, "SilkUIFramework_wt13_block_wtAction_wtLoginButton"))   
-       
+
+            time.sleep(2)
+            # Verificar se o alerta está dentro de um iframe (opcional)
+            try:
+                # Localiza todos os iframes na página
+                iframes = self.driver.find_elements(By.TAG_NAME, "iframe")
+                for iframe in iframes:
+                    self.driver.switch_to.frame(iframe)
+                    try:
+                        fechar_alerta = WebDriverWait(self.driver, 5).until(
+                            EC.element_to_be_clickable((By.XPATH, "//a[contains(@id, 'wt15')]/span[contains(@class, 'fa-close')]"))
+                        )
+                        fechar_alerta.click()
+                        self.driver.switch_to.default_content()
+                        self.wait_for_stability(timeout=5)
+                        break  # Sai do loop após fechar o alerta
+                    except TimeoutException:
+                        self.driver.switch_to.default_content()
+                        continue
+            except Exception as e:
+                logging.error(f"Erro ao tentar fechar o alerta dentro de um iframe: {e}")
+            
+
             self.wait_for_stability(timeout=10)
 
             link_portal_webplan = self.acessar_com_reattempt((By.XPATH, "//*[@id='IpasgoTheme_wt16_block_wtMainContent_wtSistemas_ctl08_SilkUIFramework_wt36_block_wtActions_wtModulos_SilkUIFramework_wt9_block_wtContent_wtModuloPortalTable_ctl04_wt2']/span"))
@@ -865,7 +891,7 @@ class IpasgoAutomation(BaseAutomation):
             time.sleep(1)
             salvar_button.click()
             logging.info("Botão 'Salvar' clicado com sucesso.")
-            time.sleep(1)  # Aguarda um momento para a página processar
+            time.sleep(1.5)  # Aguarda um momento para a página processar
 
             # Tenta clicar no botão "Confirmar"
             try:
@@ -883,7 +909,6 @@ class IpasgoAutomation(BaseAutomation):
                 self.salvar_anotar_numero()
 
             except Exception:
-                logging.error(f"Não foi possível clicar no botão 'Confirmar'")
                 # Chama a função para tratar os erros
                 self.tratar_erros()
 

@@ -5,7 +5,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.support.ui import WebDriverWait, Select
 from selenium.webdriver.support import expected_conditions as EC
-from selenium.common.exceptions import TimeoutException, NoSuchElementException, ElementNotInteractableException
+from selenium.common.exceptions import TimeoutException, NoSuchElementException, ElementNotInteractableException,ElementClickInterceptedException
 import time
 from selenium.webdriver.common.keys import Keys
 from openpyxl import load_workbook
@@ -24,10 +24,11 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 
 
 def encontrar_arquivos_paciente(caminho_pasta, id_paciente):
-    #alterar busca de relatórios /RM e RC para apenas as siglas, sem necessitar juntar carteira com nome do paciente
-    #a busca funcionará apenas contendo a sigla necessária para o caso abordado. Ou seja, RC de psi, precisa ter apenas RC e PSI na mesma linha
-    #motivos// não padronização de relatórios necessitando abordagens diversas para resolução do problema
-    #padronização de relatorios clinicos para erros futuros.
+    #############################################################################################
+    # Busca de relatórios /RM e RC para anexo de documentos dentro da automação, englobam os casos de não padronização de tamanho, espaço de caracteres, e formato de letras.
+    # Não aborda o caso de escrita invertida
+    # Os arquivos dentro do relatório clínico precisam de padronização para evitar erros futuros.
+    #############################################################################################
     p = Path(caminho_pasta)
 
     arquivos_rm = []
@@ -38,7 +39,7 @@ def encontrar_arquivos_paciente(caminho_pasta, id_paciente):
     # Padrão para arquivos RM usando expressões regulares, permitindo espaços e traços opcionais
     padrao_rm = rf'(?i)^RM[\s-]*{id_paciente}.*\..+$'
 
-    # Padrões para os três tipos de documentação usando expressões regulares, permitindo espaços e traços opcionais
+    # Padrões para os três tipos de documentação usando expressões regulares, permitindo espaços e traços e tamanho de caracteres diferentes
     padrao_rc_fono = rf'(?i)^RC[\s-]*{id_paciente}[\s-]*.*FONO.*\..+$'
     padrao_rc_psi = rf'(?i)^RC[\s-]*{id_paciente}[\s-]*.*PSI.*\..+$'
     padrao_rc_to = rf'(?i)^RC[\s-]*{id_paciente}[\s-]*.*TO.*\..+$'
@@ -162,7 +163,7 @@ class IpasgoAutomation(BaseAutomation):
         self.row_index = self.start_row
 
     
-        self.file_path = r"C:\Users\SUPERVISÃO ADM\Desktop\SOLICITACOES_AUTORIZACAO_FACPLAN_ATUALIZADO.xlsx"
+        self.file_path = r"C:\Users\SUPERVISÃO ADM\Desktop\SOLICITACOES_AUTORIZACAO_FACPLAN_ATUALIZADO_copia.xlsx"
         self.sheet_name = 'AUTORIZACOES'
         self.txt_file_path = os.path.join(r"C:\Users\SUPERVISÃO ADM\Desktop\números_guias_test.txt")  # Caminho do arquivo txt
 
@@ -215,6 +216,30 @@ class IpasgoAutomation(BaseAutomation):
 
             self.safe_click((By.ID, "SilkUIFramework_wt13_block_wtAction_wtLoginButton"))   
        
+            
+            time.sleep(2)
+
+            # Verificar se o alerta está dentro de um iframe (opcional)
+            try:
+                # Localiza todos os iframes na página
+                iframes = self.driver.find_elements(By.TAG_NAME, "iframe")
+                for iframe in iframes:
+                    self.driver.switch_to.frame(iframe)
+                    try:
+                        fechar_alerta = WebDriverWait(self.driver, 5).until(
+                            EC.element_to_be_clickable((By.XPATH, "//a[contains(@id, 'wt15')]/span[contains(@class, 'fa-close')]"))
+                        )
+                        fechar_alerta.click()
+                        logging.info("Alerta detectado e fechado dentro de um iframe.")
+                        self.driver.switch_to.default_content()
+                        self.wait_for_stability(timeout=5)
+                        break  # Sai do loop após fechar o alerta
+                    except TimeoutException:
+                        self.driver.switch_to.default_content()
+                        continue
+            except Exception as e:
+                logging.error(f"Erro ao tentar fechar o alerta dentro de um iframe: {e}")
+            
             self.wait_for_stability(timeout=10)
 
             link_portal_webplan = self.acessar_com_reattempt((By.XPATH, "//*[@id='IpasgoTheme_wt16_block_wtMainContent_wtSistemas_ctl08_SilkUIFramework_wt36_block_wtActions_wtModulos_SilkUIFramework_wt9_block_wtContent_wtModuloPortalTable_ctl04_wt2']/span"))
@@ -303,7 +328,7 @@ class IpasgoAutomation(BaseAutomation):
             self.acessar_procedimentos()
 
             # Clicando em inserir
-           # self.clicar_inserir_e_preencher()
+            self.clicar_inserir_e_preencher()
 
             # Preenchendo campo dos profissionais
             self.preencher_campo_profissionais()
