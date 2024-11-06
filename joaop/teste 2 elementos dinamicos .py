@@ -1,24 +1,25 @@
 import logging
 import pandas as pd
+import time
+import os
+import re
+import shutil
+import datetime
+import inspect  
+from pathlib import Path
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.support.ui import WebDriverWait, Select
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException, NoSuchElementException, ElementNotInteractableException,ElementClickInterceptedException
-import time
 from selenium.webdriver.common.keys import Keys
 from openpyxl import load_workbook
 from selenium.webdriver.common.action_chains import ActionChains
-import os
-import re
-from pathlib import Path
-import shutil
-import datetime
 import tkinter as tk
 from tkinter import filedialog
 from tkinter import messagebox
-import inspect  
+
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
@@ -118,7 +119,7 @@ class BaseAutomation:
                 return element
             except TimeoutException as e:
                 logging.warning(f"Tentativa {attempt + 1} falhou. Tentando novamente...")
-                time.sleep(1)
+                time.sleep(2)
         raise Exception(f"Não foi possível acessar o elemento após {attempts} tentativas.") 
 
     def close(self):
@@ -163,7 +164,7 @@ class IpasgoAutomation(BaseAutomation):
         self.row_index = self.start_row
 
     
-        self.file_path = r"C:\Users\SUPERVISÃO ADM\Desktop\SOLICITACOES_AUTORIZACAO_FACPLAN_ATUALIZADO_copia.xlsx"
+        self.file_path = r"C:\Users\SUPERVISÃO ADM\Desktop\SOLICITACOES_AUTORIZACAO_FACPLAN_ATUALIZADO.xlsx"
         self.sheet_name = 'AUTORIZACOES'
         self.txt_file_path = os.path.join(r"C:\Users\SUPERVISÃO ADM\Desktop\números_guias_test.txt")  # Caminho do arquivo txt
 
@@ -216,8 +217,6 @@ class IpasgoAutomation(BaseAutomation):
 
             self.safe_click((By.ID, "SilkUIFramework_wt13_block_wtAction_wtLoginButton"))   
        
-            
-            time.sleep(2)
 
             # Verificar se o alerta está dentro de um iframe (opcional)
             try:
@@ -238,7 +237,7 @@ class IpasgoAutomation(BaseAutomation):
                         self.driver.switch_to.default_content()
                         continue
             except Exception as e:
-                logging.error(f"Erro ao tentar fechar o alerta dentro de um iframe: {e}")
+                pass
             
             self.wait_for_stability(timeout=10)
 
@@ -252,13 +251,12 @@ class IpasgoAutomation(BaseAutomation):
 
             self.acessar_com_reattempt((By.ID, "menuPrincipal"))
 
-            time.sleep(4)
+            time.sleep(3)
 
             self.acessar_guias()
 
         except Exception as e:
-            logging.error(f"Erro ao acessar o site ou preencher o formulário: {e}")
-            return
+            pass
 
 
 
@@ -481,7 +479,7 @@ class IpasgoAutomation(BaseAutomation):
             if isinstance(data_solicitacao, pd.Timestamp):
                 data_solicitacao_str = data_solicitacao.strftime('%d/%m/%Y')
             else:
-                # Tenta converter a string para datetime, caso não esteja no formato Timestamp
+                #converte a string para datetime, caso não esteja no formato Timestamp DD/MM/YYYY
                 try:
                     data_solicitacao_parsed = pd.to_datetime(data_solicitacao, dayfirst=True)
                     data_solicitacao_str = data_solicitacao_parsed.strftime('%d/%m/%Y')
@@ -495,7 +493,6 @@ class IpasgoAutomation(BaseAutomation):
             data_solicitacao_input.send_keys(data_solicitacao_str)  # Insere a data
             logging.info(f"Campo 'Data de Solicitação' preenchido com sucesso com o valor: {data_solicitacao_str}")
 
-            # Aguarda um breve momento para o campo processar a entrada
             time.sleep(1)
 
             # Agora verifica se o campo realmente contém a data inserida
@@ -1044,6 +1041,8 @@ class IpasgoAutomation(BaseAutomation):
             logging.warning("Execução correta, mas falha ao preencher o arquivo Excel.")
 
 
+
+
 if __name__ == "__main__":
     try:
         
@@ -1133,3 +1132,4 @@ if __name__ == "__main__":
 
     except Exception as e:
         logging.error(f"Erro crítico: {e}")
+      
