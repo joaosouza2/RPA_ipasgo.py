@@ -271,8 +271,7 @@ class IpasgoAutomation(BaseAutomation):
             self.acessar_guia_sadt()
 
         except Exception as e:
-            logging.error(f"Erro ao clicar na aba 'Guias': {e}")
-            return
+            pass
 
 
 
@@ -285,8 +284,7 @@ class IpasgoAutomation(BaseAutomation):
             time.sleep(3)
 
         except Exception as e:
-            logging.error(f"Erro ao processar o guia SP/SADT: {e}")
-            return
+            pass
 
 
     def process_row(self):
@@ -301,11 +299,9 @@ class IpasgoAutomation(BaseAutomation):
                 logging.warning(f"Linha {self.row_index + 2} já foi executada e a guia solicitada é {guia_cod_str}.")
                 return
             else:
-                # Conteúdo não é numérico, processa a linha
-                logging.info(f"Linha {self.row_index + 2} contém texto em 'GUIA_COD'. Processando a linha.")
+                pass
         else:
-            # Coluna 'GUIA_COD' está vazia, processa a linha
-            logging.info(f"Linha {self.row_index + 2} não possui valor em 'GUIA_COD'. Processando a linha.")
+            pass
 
         try:
             # Lida com o alerta caso ele apareça
@@ -461,7 +457,7 @@ class IpasgoAutomation(BaseAutomation):
             carater_atendimento_input.send_keys(Keys.ARROW_DOWN)
             carater_atendimento_input.send_keys(Keys.ENTER)
 
-            time.sleep(3)
+            time.sleep(1)
 
         except Exception:
             pass
@@ -501,7 +497,7 @@ class IpasgoAutomation(BaseAutomation):
                 logging.error(f"O campo 'Data de Solicitação' não foi preenchido corretamente. Esperado: {data_solicitacao_str}, Encontrado: {valor_preenchido}")
                 return
             else:
-                logging.info(f"O campo 'Data de Solicitação' foi verificado e contém o valor correto.")
+                pass
 
         except Exception:
             pass
@@ -510,34 +506,52 @@ class IpasgoAutomation(BaseAutomation):
     def preencher_indicacao_clinica(self):
         """Preenche o campo 'Indicação Clínica' com dados do Excel."""
         try:
-
             indicacao_clinica = self.get_excel_value('INDICACAO_CLINICA')
 
+            # Acessa o campo de entrada 'Indicação Clínica'
             indicacao_clinica_input = self.acessar_com_reattempt((By.ID, "indicacaoClinica"))
+            indicacao_clinica_input.clear()
             indicacao_clinica_input.send_keys(indicacao_clinica)
-            time.sleep(2)
-            logging.info(f"Campo 'Indicação Clínica' preenchido com sucesso com o valor: {indicacao_clinica}")
 
-        except Exception:
+            # Espera até que o valor digitado esteja presente no campo de entrada
+            WebDriverWait(self.driver, 10).until(
+                lambda driver: indicacao_clinica_input.get_attribute('value') == indicacao_clinica
+            )
+            time.sleep(.5)
+
+        except Exception as e:
             pass
 
 
 
+
     def acessar_procedimentos(self):
-        """Clica no campo 'Procedimentos' para abrir a aba, garantindo que ele esteja visível."""
+        """Clica na aba 'Procedimentos' e garante que o botão 'confirmarEdicaoDeProcedimento' esteja visível."""
         try:
-
+            # Encontra e clica na aba 'Procedimentos'
             procedimentos_tab = self.acessar_com_reattempt((By.ID, "ui-accordion-accordion-header-2"))
-
             self.driver.execute_script("arguments[0].scrollIntoView(true);", procedimentos_tab)
-
-            time.sleep(1)
-
             procedimentos_tab.click()
+            logging.info("Aba 'Procedimentos' clicada.")
 
-            time.sleep(2)
+            # Espera até que o botão 'Incluir Procedimento' esteja visível, indicando que a aba abriu
+            WebDriverWait(self.driver, 10).until(
+                EC.visibility_of_element_located((By.ID, "incluirProcedimento"))
+            )
+            logging.info("Aba 'Procedimentos' expandida com sucesso.")
 
-        except Exception:
+            # Verifica se o elemento 'confirmarEdicaoDeProcedimento' está presente e visível
+            confirmar_button_locator = (By.XPATH, '//*[@id="confirmarEdicaoDeProcedimento"]')
+            confirmar_button = self.driver.find_element(*confirmar_button_locator)
+
+            # Se o elemento não estiver visível, rola um pouco para cima e verifica novamente
+            if not confirmar_button.is_displayed():
+                self.driver.execute_script("window.scrollBy(0, -200);")  # Rola 200 pixels para cima
+                time.sleep(1)  # Pequena pausa para a rolagem ocorrer
+                if not confirmar_button.is_displayed():
+                    pass
+
+        except Exception as e:
             pass
 
 
@@ -572,7 +586,7 @@ class IpasgoAutomation(BaseAutomation):
 
             total_input.send_keys(Keys.RETURN)
 
-            logging.info(f"Campo 'QUANTIDADE' preenchido com sucesso com o valor: {total}")
+            logging.info(f" A 'QUANTIDADE' de consultas solicitadas foram: {total}")
 
             confirmar_button = self.acessar_com_reattempt((By.XPATH, '//*[@id="confirmarEdicaoDeProcedimento"]'))
 
