@@ -5,7 +5,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.support.ui import WebDriverWait, Select
 from selenium.webdriver.support import expected_conditions as EC
-from selenium.common.exceptions import TimeoutException, NoSuchElementException, ElementNotInteractableException
+from selenium.common.exceptions import TimeoutException, NoSuchElementException, ElementNotInteractableException,ElementClickInterceptedException
 import time
 from selenium.webdriver.common.keys import Keys
 from openpyxl import load_workbook
@@ -25,8 +25,9 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 
 def encontrar_arquivos_paciente(caminho_pasta, id_paciente):
     #############################################################################################
-    # Busca de relatórios RM e RC para anexo de documentos dentro da automação, englobando os casos
-    # em que o id_paciente pode ou não ter zero à esquerda nos nomes dos arquivos.
+    # Busca de relatórios /RM e RC para anexo de documentos dentro da automação, englobam os casos de não padronização de tamanho, espaço de caracteres, e formato de letras.
+    # Não aborda o caso de escrita invertida
+    # Os arquivos dentro do relatório clínico precisam de padronização para evitar erros futuros.
     #############################################################################################
     p = Path(caminho_pasta)
 
@@ -35,24 +36,13 @@ def encontrar_arquivos_paciente(caminho_pasta, id_paciente):
     arquivos_rc_psi = []
     arquivos_rc_to = []
 
-    # Gerar as possíveis variações do id_paciente (com e sem zero à esquerda)
-    id_paciente_variations = {id_paciente}
-    id_paciente_no_leading_zeros = id_paciente.lstrip('0')
-    if id_paciente_no_leading_zeros != id_paciente:
-        id_paciente_variations.add(id_paciente_no_leading_zeros)
-    else:
-        id_paciente_variations.add('0' + id_paciente)
-
-    # Criar padrões de regex que considerem ambas as variações do id_paciente
-    id_paciente_pattern = '|'.join(re.escape(id_var) for id_var in id_paciente_variations)
-
     # Padrão para arquivos RM usando expressões regulares, permitindo espaços e traços opcionais
-    padrao_rm = rf'(?i)^RM[\s-]*({id_paciente_pattern}).*\..+$'
+    padrao_rm = rf'(?i)^RM[\s-]*{id_paciente}.*\..+$'
 
-    # Padrões para os três tipos de documentação usando expressões regulares, permitindo espaços e traços
-    padrao_rc_fono = rf'(?i)^RC[\s-]*({id_paciente_pattern})[\s-]*.*FONO.*\..+$'
-    padrao_rc_psi = rf'(?i)^RC[\s-]*({id_paciente_pattern})[\s-]*.*PSI.*\..+$'
-    padrao_rc_to = rf'(?i)^RC[\s-]*({id_paciente_pattern})[\s-]*.*TO.*\..+$'
+    # Padrões para os três tipos de documentação usando expressões regulares, permitindo espaços e traços e tamanho de caracteres diferentes
+    padrao_rc_fono = rf'(?i)^RC[\s-]*{id_paciente}[\s-]*.*FONO.*\..+$'
+    padrao_rc_psi = rf'(?i)^RC[\s-]*{id_paciente}[\s-]*.*PSI.*\..+$'
+    padrao_rc_to = rf'(?i)^RC[\s-]*{id_paciente}[\s-]*.*TO.*\..+$'
 
     logging.info(f"Verificando arquivos na pasta: {caminho_pasta}")
 
@@ -173,7 +163,7 @@ class IpasgoAutomation(BaseAutomation):
         self.row_index = self.start_row
 
     
-        self.file_path = r"C:\Users\SUPERVISÃO ADM\Desktop\SOLICITACOES_AUTORIZACAO_FACPLAN_ATUALIZADO.xlsx"
+        self.file_path = r"C:\Users\SUPERVISÃO ADM\Desktop\SOLICITACOES_AUTORIZACAO_FACPLAN_ATUALIZADO_copia.xlsx"
         self.sheet_name = 'AUTORIZACOES'
         self.txt_file_path = os.path.join(r"C:\Users\SUPERVISÃO ADM\Desktop\números_guias_test.txt")  # Caminho do arquivo txt
 
@@ -226,6 +216,30 @@ class IpasgoAutomation(BaseAutomation):
 
             self.safe_click((By.ID, "SilkUIFramework_wt13_block_wtAction_wtLoginButton"))   
        
+            
+            time.sleep(2)
+
+            # Verificar se o alerta está dentro de um iframe (opcional)
+            try:
+                # Localiza todos os iframes na página
+                iframes = self.driver.find_elements(By.TAG_NAME, "iframe")
+                for iframe in iframes:
+                    self.driver.switch_to.frame(iframe)
+                    try:
+                        fechar_alerta = WebDriverWait(self.driver, 5).until(
+                            EC.element_to_be_clickable((By.XPATH, "//a[contains(@id, 'wt15')]/span[contains(@class, 'fa-close')]"))
+                        )
+                        fechar_alerta.click()
+                        logging.info("Alerta detectado e fechado dentro de um iframe.")
+                        self.driver.switch_to.default_content()
+                        self.wait_for_stability(timeout=5)
+                        break  # Sai do loop após fechar o alerta
+                    except TimeoutException:
+                        self.driver.switch_to.default_content()
+                        continue
+            except Exception as e:
+                logging.error(f"Erro ao tentar fechar o alerta dentro de um iframe: {e}")
+            
             self.wait_for_stability(timeout=10)
 
             link_portal_webplan = self.acessar_com_reattempt((By.XPATH, "//*[@id='IpasgoTheme_wt16_block_wtMainContent_wtSistemas_ctl08_SilkUIFramework_wt36_block_wtActions_wtModulos_SilkUIFramework_wt9_block_wtContent_wtModuloPortalTable_ctl04_wt2']/span"))
@@ -321,13 +335,6 @@ class IpasgoAutomation(BaseAutomation):
 
             # Abre a aba 'Observações/Justificativa'
             self.preencher_observacao_justificativa()
-
-            #encontra o caminho dos arquivos para anexo,
-            #antes das funções de anexo para evitar erro por sobreposição de lementos html
-            #caso não encontrada, salva o erro no excel 
-            if not self.preparar_pasta_paciente():
-                self.salvar_numero_no_excel(lista_erros="Pasta do paciente não encontrada")
-                return 
 
             # Anexa o documento
             self.selecionar_pedido_medico()
@@ -682,46 +689,6 @@ class IpasgoAutomation(BaseAutomation):
 
         except Exception:
             pass
-    
-
-
-    def preparar_pasta_paciente(self):
-        """Prepara o caminho para a pasta do paciente, tentando com o ID original e com um zero adicionado no início."""
-        try:
-            base_path = Path(r"G:\Meu Drive\IPASGO\1.RELATORIO MEDICO E CLINICO")
-            nome_paciente = self.get_excel_value('PACIENTE')
-            id_paciente = self.get_excel_value('CARTEIRA')
-
-            if not nome_paciente or not id_paciente:
-                logging.error("Falha ao obter o nome ou o ID do paciente da planilha.")
-                return False
-            logging.info(f"Paciente: {nome_paciente}, ID: {id_paciente}")
-
-            # Primeira tentativa: ID original
-            patient_folder_name = f"{nome_paciente}-{id_paciente}"
-            patient_folder_path = base_path / patient_folder_name
-            if patient_folder_path.is_dir():
-                logging.info(f"Pasta do paciente encontrada: {patient_folder_path}")
-                self.patient_folder_path = patient_folder_path
-                return True
-            else:
-                # Segunda tentativa: Adiciona zero à esquerda
-                id_paciente_modificado = '0' + str(id_paciente)
-                patient_folder_name = f"{nome_paciente}-{id_paciente_modificado}"
-                patient_folder_path = base_path / patient_folder_name
-                if patient_folder_path.is_dir():
-                    logging.info(f"Pasta do paciente encontrada com ID modificado: {patient_folder_path}")
-                    self.patient_folder_path = patient_folder_path
-                    return True
-                else:
-                    logging.error("Pasta do paciente não encontrada nas duas tentativas.")
-                    return False
-
-        except Exception as e:
-            logging.error(f"Erro ao preparar a pasta do paciente: {e}")
-            return False
-
-
 
 
 
@@ -745,16 +712,28 @@ class IpasgoAutomation(BaseAutomation):
 
 
     def Anexando_RM(self):
-        """Anexa o Relatório Médico (RM) do paciente."""
         try:
-            if not hasattr(self, 'patient_folder_path'):
-                logging.error("O caminho da pasta do paciente não foi preparado.")
-                return
-
+            base_path = Path(r"G:\Meu Drive\IPASGO\1.RELATORIO MEDICO E CLINICO")
+            nome_paciente = self.get_excel_value('PACIENTE')
             id_paciente = self.get_excel_value('CARTEIRA')
 
-            # Chamada da função para encontrar os arquivos RM
-            arquivos_rm, _, _, _ = encontrar_arquivos_paciente(self.patient_folder_path, id_paciente)
+            if not nome_paciente or not id_paciente:
+                logging.error("Falha ao obter o nome ou o ID do paciente da planilha.")
+                return
+            logging.info(f"Paciente: {nome_paciente}, ID: {id_paciente}")
+
+            # Constrói o nome da pasta do paciente
+            patient_folder_name = f"{nome_paciente}-{id_paciente}"
+            patient_folder_path = base_path / patient_folder_name
+
+            logging.info(f"Caminho da pasta do paciente: {patient_folder_path}")
+
+            if not patient_folder_path.is_dir():
+                logging.error(f"A pasta do paciente '{patient_folder_path}' não foi encontrada.")
+                return
+
+            # Chamada corrigida da função
+            arquivos_rm, _, _, _ = encontrar_arquivos_paciente(patient_folder_path, id_paciente)
 
             if not arquivos_rm:
                 logging.error("Nenhum arquivo RM correspondente foi encontrado para o paciente.")
@@ -770,14 +749,13 @@ class IpasgoAutomation(BaseAutomation):
                 logging.info(f"Arquivo '{arquivo_para_upload}' selecionado com sucesso.")
 
                 time.sleep(2)
-                break  # Anexa apenas o primeiro arquivo encontrado
+                break
 
             self.safe_click((By.XPATH, '//*[@id="upload_form"]/div/input[2]'))
             time.sleep(2)
 
-        except Exception as e:
-            logging.error(f"Erro ao fazer upload dos arquivos RM do paciente: {e}")
-            raise
+        except Exception:
+            pass
 
 
 
@@ -801,31 +779,39 @@ class IpasgoAutomation(BaseAutomation):
 
 
     def Anexando_RC(self):
-        """Anexa o Relatório Clínico (RC) do paciente."""
         try:
-            if not hasattr(self, 'patient_folder_path'):
-                logging.error("O caminho da pasta do paciente não foi preparado.")
-                return
-
+            base_path = Path(r"G:\Meu Drive\IPASGO\1.RELATORIO MEDICO E CLINICO")
+            nome_paciente = self.get_excel_value('PACIENTE')
             id_paciente = self.get_excel_value('CARTEIRA')
             cbo = self.get_excel_value('CBO')
             cbo = str(int(float(cbo)))
 
-            if not cbo:
-                logging.error("Falha ao obter o CBO da planilha.")
+            if not nome_paciente or not id_paciente or not cbo:
+                logging.error("Falha ao obter o nome, ID do paciente ou CBO da planilha.")
                 return
-            logging.info(f"CBO: {cbo}")
+            logging.info(f"Paciente: {nome_paciente}, ID: {id_paciente}, CBO: {cbo}")
 
-            # Chamada da função para encontrar os arquivos RC
-            _, arquivos_rc_fono, arquivos_rc_psi, arquivos_rc_to = encontrar_arquivos_paciente(self.patient_folder_path, id_paciente)
+            patient_folder_name = f"{nome_paciente}-{id_paciente}"
+            patient_folder_path = base_path / patient_folder_name
 
-            if cbo == "251510":  # Psicologia
+            logging.info(f"Caminho da pasta do paciente: {patient_folder_path}")
+
+            if not patient_folder_path.is_dir():
+                logging.error(f"A pasta do paciente '{patient_folder_path}' não foi encontrada.")
+                return
+
+            # Chamada corrigida da função
+            _, arquivos_rc_fono, arquivos_rc_psi, arquivos_rc_to = encontrar_arquivos_paciente(patient_folder_path, id_paciente)
+
+
+            
+            if cbo == "251510":  
                 arquivos_rc = arquivos_rc_psi
                 logging.info("CBO indica PSICOLOGIA. Selecionando arquivos PSI.")
-            elif cbo == "223810":  # Fonoaudiologia
+            elif cbo == "223810":  
                 arquivos_rc = arquivos_rc_fono
                 logging.info("CBO indica FONOAUDIOLOGIA. Selecionando arquivos FONO.")
-            elif cbo == "223905":  # Terapia Ocupacional
+            elif cbo == "223905":  
                 arquivos_rc = arquivos_rc_to
                 logging.info("CBO indica TERAPIA OCUPACIONAL. Selecionando arquivos TO.")
             else:
@@ -838,22 +824,26 @@ class IpasgoAutomation(BaseAutomation):
 
             logging.info(f"Arquivos RC encontrados: {arquivos_rc}")
 
+            
             for arquivo_para_upload in arquivos_rc:
+                
                 input_file = self.driver.find_element(By.CSS_SELECTOR, 'input[type="file"]')
                 logging.info("Elemento de upload encontrado.")
 
+                
                 input_file.send_keys(str(arquivo_para_upload))
                 logging.info(f"Arquivo '{arquivo_para_upload}' selecionado com sucesso.")
 
                 time.sleep(2)
-                break  # Anexa apenas o primeiro arquivo encontrado
 
+                break  
+
+            
             self.safe_click((By.XPATH, '//*[@id="upload_form"]/div/input[2]'))
             time.sleep(1)
 
-        except Exception as e:
-            logging.error(f"Erro ao fazer upload dos arquivos RC do paciente: {e}")
-            raise
+        except Exception:
+            pass
 
 
 

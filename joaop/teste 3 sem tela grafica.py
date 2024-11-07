@@ -120,7 +120,7 @@ class BaseAutomation:
                 logging.info(f"Elemento clicado com sucesso: {by_locator}")
                 return
             except Exception as e:
-                time.sleep(1)
+                time.sleep(1.5)
         raise Exception("Não foi possível clicar no elemento após várias tentativas.")
 
     def acessar_com_reattempt(self, by_locator, attempts=3):
@@ -132,7 +132,7 @@ class BaseAutomation:
                 return element
             except TimeoutException as e:
                 logging.warning(f"Tentativa {attempt + 1} falhou. Tentando novamente...")
-                time.sleep(1)
+                time.sleep(2.5)
         raise Exception(f"Não foi possível acessar o elemento após {attempts} tentativas.") 
 
     def close(self):
@@ -230,8 +230,6 @@ class IpasgoAutomation(BaseAutomation):
 
             self.safe_click((By.ID, "SilkUIFramework_wt13_block_wtAction_wtLoginButton"))   
 
-            time.sleep(2)
-            # Verificar se o alerta está dentro de um iframe (opcional)
             try:
                 # Localiza todos os iframes na página
                 iframes = self.driver.find_elements(By.TAG_NAME, "iframe")
@@ -249,7 +247,7 @@ class IpasgoAutomation(BaseAutomation):
                         self.driver.switch_to.default_content()
                         continue
             except Exception as e:
-                logging.error(f"Erro ao tentar fechar o alerta dentro de um iframe: {e}")
+                pass
             
 
             self.wait_for_stability(timeout=10)
@@ -264,13 +262,12 @@ class IpasgoAutomation(BaseAutomation):
 
             self.acessar_com_reattempt((By.ID, "menuPrincipal"))
 
-            time.sleep(4)
+            time.sleep(3)
 
             self.acessar_guias()
 
         except Exception as e:
-            logging.error(f"Erro ao acessar o site ou preencher o formulário: {e}")
-            return
+            pass
 
 
 
@@ -285,8 +282,7 @@ class IpasgoAutomation(BaseAutomation):
             self.acessar_guia_sadt()
 
         except Exception as e:
-            logging.error(f"Erro ao clicar na aba 'Guias': {e}")
-            return
+            pass
 
 
 
@@ -299,8 +295,7 @@ class IpasgoAutomation(BaseAutomation):
             time.sleep(3)
 
         except Exception as e:
-            logging.error(f"Erro ao processar o guia SP/SADT: {e}")
-            return
+            pass
 
 
     def process_row(self):
@@ -312,14 +307,12 @@ class IpasgoAutomation(BaseAutomation):
             # Verifica se o conteúdo é numérico
             if guia_cod_str.replace('.', '', 1).isdigit():
                 # Linha já processada, exibe mensagem de aviso e pula para a próxima
-                logging.warning(f"Linha {self.row_index + 2} já foi executada e a guia solicitada é {guia_cod_str}.")
+                logging.warning(f"Linha {self.row_index + 2} já foi executada e a guia solicitada é {guia_cod_str}. Passando então para a próxima linha")
                 return
             else:
-                # Conteúdo não é numérico, processa a linha
-                logging.info(f"Linha {self.row_index + 2} contém texto em 'GUIA_COD'. Processando a linha.")
+                pass
         else:
-            # Coluna 'GUIA_COD' está vazia, processa a linha
-            logging.info(f"Linha {self.row_index + 2} não possui valor em 'GUIA_COD'. Processando a linha.")
+            pass
 
         try:
             # Lida com o alerta caso ele apareça
