@@ -85,7 +85,19 @@ class BaseAutomation:
         self.options = Options()
         self.options.add_argument("--start-maximized")
         self.driver = webdriver.Chrome(options=self.options)
-                       
+
+#####################################################################################################
+        #self.options = Options()
+        #self.options.add_argument("--headless")  # Executa em modo headless
+        #self.options.add_argument("--window-size=1366,768")  # Define a resolução de tela
+        #self.options.add_argument("--disable-gpu")  # Desativa aceleração por GPU
+        #self.options.add_argument("--no-sandbox")  # Ignora o sandboxing
+        #self.options.add_argument("--disable-dev-shm-usage")  # Evita problemas de recursos compartilhados
+        #self.driver = webdriver.Chrome(options=self.options)
+########################################################################################################
+
+
+
 
     def wait_for_stability(self, timeout=10, check_interval=1):
         """Espera pela estabilidade da altura da página."""
