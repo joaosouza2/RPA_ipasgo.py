@@ -865,7 +865,7 @@ class IpasgoAutomation(BaseAutomation):
             pass
 
 
-
+ 
     def salvar_confirmar(self):
         try:
             # Tenta clicar no botão "Salvar"
