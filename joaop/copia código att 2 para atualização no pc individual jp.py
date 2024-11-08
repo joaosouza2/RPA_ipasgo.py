@@ -141,7 +141,7 @@ class BaseAutomation:
                 return element
             except TimeoutException as e:
                 logging.warning(f"Tentativa {attempt + 1} falhou. Tentando novamente...")
-                time.sleep(2)
+                time.sleep(2.5)
         raise Exception(f"Não foi possível acessar o elemento após {attempts} tentativas.") 
 
     def close(self):
@@ -351,6 +351,13 @@ class IpasgoAutomation(BaseAutomation):
 
             # Abre a aba 'Observações/Justificativa'
             self.preencher_observacao_justificativa()
+            
+            #encontra o caminho dos arquivos para anexo,
+            #antes das funções de anexo para evitar erro por sobreposição de lementos html
+            #caso não encontrada, salva o erro no excel 
+            if not self.preparar_pasta_paciente():
+                self.salvar_numero_no_excel(lista_erros="Pasta do paciente não encontrada")
+                return 
 
             # Anexa o documento
             self.selecionar_pedido_medico()
@@ -721,7 +728,44 @@ class IpasgoAutomation(BaseAutomation):
 
         except Exception:
             pass
+    
 
+
+    def preparar_pasta_paciente(self):
+        """Prepara o caminho para a pasta do paciente, tentando com o ID original e com um zero adicionado no início."""
+        try:
+            base_path = Path(r"G:\Meu Drive\IPASGO\1.RELATORIO MEDICO E CLINICO")
+            nome_paciente = self.get_excel_value('PACIENTE')
+            id_paciente = self.get_excel_value('CARTEIRA')
+
+            if not nome_paciente or not id_paciente:
+                logging.error("Falha ao obter o nome ou o ID do paciente da planilha.")
+                return False
+            logging.info(f"Paciente: {nome_paciente}, ID: {id_paciente}")
+
+            # Primeira tentativa: ID original
+            patient_folder_name = f"{nome_paciente}-{id_paciente}"
+            patient_folder_path = base_path / patient_folder_name
+            if patient_folder_path.is_dir():
+                logging.info(f"Pasta do paciente encontrada: {patient_folder_path}")
+                self.patient_folder_path = patient_folder_path
+                return True
+            else:
+                # Segunda tentativa: Adiciona zero à esquerda
+                id_paciente_modificado = '0' + str(id_paciente)
+                patient_folder_name = f"{nome_paciente}-{id_paciente_modificado}"
+                patient_folder_path = base_path / patient_folder_name
+                if patient_folder_path.is_dir():
+                    logging.info(f"Pasta do paciente encontrada com ID modificado: {patient_folder_path}")
+                    self.patient_folder_path = patient_folder_path
+                    return True
+                else:
+                    logging.error("Pasta do paciente não encontrada nas duas tentativas.")
+                    return False
+
+        except Exception as e:
+            logging.error(f"Erro ao preparar a pasta do paciente: {e}")
+            return False
 
 
     def selecionar_pedido_medico(self):
@@ -744,42 +788,32 @@ class IpasgoAutomation(BaseAutomation):
 
 
     def Anexando_RM(self):
+        """Anexa o Relatório Médico (RM) do paciente."""
         try:
-            base_path = Path(r"G:\Meu Drive\IPASGO\1.RELATORIO MEDICO E CLINICO")
-            nome_paciente = self.get_excel_value('PACIENTE')
+            if not hasattr(self, 'patient_folder_path'):
+                logging.error("O caminho da pasta do paciente não foi preparado.")
+                return
+
             id_paciente = self.get_excel_value('CARTEIRA')
 
-            if not nome_paciente or not id_paciente:
-                return
-            
-            logging.info(f"Paciente: {nome_paciente}, ID: {id_paciente}")
-
-            # Constrói o nome da pasta do paciente
-            patient_folder_name = f"{nome_paciente}-{id_paciente}"
-            patient_folder_path = base_path / patient_folder_name
-
-            logging.info(f"O caminho do arquivo é: {patient_folder_path}")
-
-            if not patient_folder_path.is_dir():
-                logging.error(f"A pasta do paciente '{nome_paciente}' não foi encontrada.")
-                return
-
-            # Chamada corrigida da função
-            arquivos_rm, _, _, _ = encontrar_arquivos_paciente(patient_folder_path, id_paciente)
+            # Chamada da função para encontrar os arquivos RM
+            arquivos_rm, _, _, _ = encontrar_arquivos_paciente(self.patient_folder_path, id_paciente)
 
             if not arquivos_rm:
                 logging.error("Nenhum arquivo RM correspondente foi encontrado para o paciente.")
                 return
 
+            logging.info(f"Arquivos RM encontrados: {arquivos_rm}")
 
             for arquivo_para_upload in arquivos_rm:
                 input_file = self.driver.find_element(By.CSS_SELECTOR, 'input[type="file"]')
+                logging.info("Elemento de upload encontrado.")
 
                 input_file.send_keys(str(arquivo_para_upload))
-                logging.info(f"Arquivo '{arquivo_para_upload}' inserido com sucesso.")
+                logging.info(f"Arquivo '{arquivo_para_upload}' selecionado com sucesso.")
 
                 time.sleep(2)
-                break
+                break  # Anexa apenas o primeiro arquivo encontrado
 
             self.safe_click((By.XPATH, '//*[@id="upload_form"]/div/input[2]'))
             time.sleep(1)

@@ -64,23 +64,23 @@ def encontrar_arquivos_paciente(caminho_pasta, id_paciente):
             # Verifica se é um arquivo RM
             if re.match(padrao_rm, nome_arquivo):
                 arquivos_rm.append(arquivo)
-                logging.info(f"Arquivo RM identificado: {arquivo}")
+                #logging.info(f"Arquivo RM identificado: {arquivo}")
                 continue
 
             # Verifica se é um arquivo RC e classifica de acordo com FONO, PSI ou TO
             if re.match(padrao_rc_fono, nome_arquivo):
                 arquivos_rc_fono.append(arquivo)
-                logging.info(f"Arquivo RC FONO identificado: {arquivo}")
+                #logging.info(f"Arquivo RC FONO identificado: {arquivo}")
                 continue
 
             if re.match(padrao_rc_psi, nome_arquivo):
                 arquivos_rc_psi.append(arquivo)
-                logging.info(f"Arquivo RC PSI identificado: {arquivo}")
+                #logging.info(f"Arquivo RC PSI identificado: {arquivo}")
                 continue
 
             if re.match(padrao_rc_to, nome_arquivo):
                 arquivos_rc_to.append(arquivo)
-                logging.info(f"Arquivo RC TO identificado: {arquivo}")
+                #logging.info(f"Arquivo RC TO identificado: {arquivo}")
                 continue
 
     return arquivos_rm, arquivos_rc_fono, arquivos_rc_psi, arquivos_rc_to
@@ -525,34 +525,51 @@ class IpasgoAutomation(BaseAutomation):
     def preencher_indicacao_clinica(self):
         """Preenche o campo 'Indicação Clínica' com dados do Excel."""
         try:
-
             indicacao_clinica = self.get_excel_value('INDICACAO_CLINICA')
 
+            # Acessa o campo de entrada 'Indicação Clínica'
             indicacao_clinica_input = self.acessar_com_reattempt((By.ID, "indicacaoClinica"))
+            indicacao_clinica_input.clear()
             indicacao_clinica_input.send_keys(indicacao_clinica)
-            time.sleep(2)
-            logging.info(f"Campo 'Indicação Clínica' preenchido com sucesso com o valor: {indicacao_clinica}")
 
-        except Exception:
+            # Espera até que o valor digitado esteja presente no campo de entrada
+            WebDriverWait(self.driver, 10).until(
+                lambda driver: indicacao_clinica_input.get_attribute('value') == indicacao_clinica
+            )
+            time.sleep(.5)
+
+        except Exception as e:
             pass
 
 
 
     def acessar_procedimentos(self):
-        """Clica no campo 'Procedimentos' para abrir a aba, garantindo que ele esteja visível."""
+        """Clica na aba 'Procedimentos' e garante que o botão 'confirmarEdicaoDeProcedimento' esteja visível."""
         try:
-
+            # Encontra e clica na aba 'Procedimentos'
             procedimentos_tab = self.acessar_com_reattempt((By.ID, "ui-accordion-accordion-header-2"))
-
             self.driver.execute_script("arguments[0].scrollIntoView(true);", procedimentos_tab)
-
-            time.sleep(1)
-
             procedimentos_tab.click()
+            logging.info("Aba 'Procedimentos' clicada.")
 
-            time.sleep(2)
+            # Espera até que o botão 'Incluir Procedimento' esteja visível, indicando que a aba abriu
+            WebDriverWait(self.driver, 10).until(
+                EC.visibility_of_element_located((By.ID, "incluirProcedimento"))
+            )
+            
 
-        except Exception:
+            # Verifica se o elemento 'confirmarEdicaoDeProcedimento' está presente e visível
+            confirmar_button_locator = (By.XPATH, '//*[@id="confirmarEdicaoDeProcedimento"]')
+            confirmar_button = self.driver.find_element(*confirmar_button_locator)
+
+            # Se o elemento não estiver visível, rola um pouco para cima e verifica novamente
+            if not confirmar_button.is_displayed():
+                self.driver.execute_script("window.scrollBy(0, -200);")  
+                time.sleep(1) 
+                if not confirmar_button.is_displayed():
+                    pass
+
+        except Exception as e:
             pass
 
 
@@ -792,11 +809,26 @@ class IpasgoAutomation(BaseAutomation):
                 break  # Anexa apenas o primeiro arquivo encontrado
 
             self.safe_click((By.XPATH, '//*[@id="upload_form"]/div/input[2]'))
-            time.sleep(2)
+            time.sleep(1)
+
+             # Verificação se o arquivo foi anexado com sucesso
+            nome_arquivo = arquivo_para_upload.name  # Obtém o nome do arquivo
+            xpath_arquivo_anexado = '//*[@id="arquivos-enviados"]/tbody/tr[1]/td[3]/strong'
+
+            # Espera explícita até que o elemento apareça e o texto corresponda
+            try:
+                elemento_anexo = WebDriverWait(self.driver, 10).until(
+                    EC.text_to_be_present_in_element(
+                        (By.XPATH, xpath_arquivo_anexado),
+                        nome_arquivo
+                    )
+                )
+                logging.info("Arquivo de RC está presente na caixa de diálogo determinada, podendo prosseguir a atividade.")
+            except TimeoutException:
+                raise Exception(f"Arquivo '{nome_arquivo}' não foi anexado com sucesso.")
 
         except Exception as e:
-            logging.error(f"Erro ao fazer upload dos arquivos RM do paciente: {e}")
-            raise
+            pass
 
 
 
@@ -869,6 +901,22 @@ class IpasgoAutomation(BaseAutomation):
 
             self.safe_click((By.XPATH, '//*[@id="upload_form"]/div/input[2]'))
             time.sleep(1)
+            
+            # Verificação se o arquivo foi anexado com sucesso
+            nome_arquivo = arquivo_para_upload.name  # Obtém o nome do arquivo
+            xpath_arquivo_anexado = '//*[@id="arquivos-enviados"]/tbody/tr[2]/td[3]/strong'
+
+            # Espera explícita até que o elemento apareça e o texto corresponda
+            try:
+                elemento_anexo = WebDriverWait(self.driver, 10).until(
+                    EC.text_to_be_present_in_element(
+                        (By.XPATH, xpath_arquivo_anexado),
+                        nome_arquivo
+                    )
+                )
+                logging.info("Arquivo de RC está presente na caixa de diálogo determinada, podendo prosseguir a atividade.")
+            except TimeoutException:
+                raise Exception(f"Arquivo '{nome_arquivo}' não foi anexado com sucesso.")
 
         except Exception as e:
             logging.error(f"Erro ao fazer upload dos arquivos RC do paciente: {e}")
@@ -881,7 +929,7 @@ class IpasgoAutomation(BaseAutomation):
             # Tenta clicar no botão "Salvar"
             salvar_button = self.driver.find_element(By.XPATH, '//*[@id="btnGravar"]')
             self.driver.execute_script("arguments[0].scrollIntoView(true);", salvar_button)
-            time.sleep(1)
+            time.sleep(1.5)
             salvar_button.click()
             logging.info("Botão 'Salvar' clicado com sucesso.")
             time.sleep(1.5)  # Aguarda um momento para a página processar
@@ -955,8 +1003,13 @@ class IpasgoAutomation(BaseAutomation):
             logging.info("Página recarregada devido aos erros encontrados.")
 
         else:
-            logging.error("Nenhum erro encontrado, mas o botão 'Confirmar' não pôde ser clicado.")
+            pass
+            #logging.error("Nenhum erro encontrado, mas o botão 'Confirmar' não pôde ser clicado.")
+            #############################################################
+            #criar exceção nessa parte para diminuir incidencia de erros no processamento headless
+            #############################################################
             # Opcionalmente, você pode tomar alguma ação aqui, como levantar uma exceção
+
 
 
 
