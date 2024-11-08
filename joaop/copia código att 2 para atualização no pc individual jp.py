@@ -24,12 +24,22 @@ from tkinter import messagebox
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 
+#CONFIGURAÇÕES PARA RETIRADA DE LOGGINGS EXCESSIVOS DE EXECUÇÃO. 
+####################################################################################
+#class CustomFilter(logging.Filter):
+#    def filter(self, record):
+#        # Filtra apenas as mensagens de log do script principal
+#        return record.name == '__main__'
+#logger = logging.getLogger()
+#logger.addFilter(CustomFilter())
+#####################################################################################
+
 def encontrar_arquivos_paciente(caminho_pasta, id_paciente):
-    #############################################################################################
+#################################################################################################
     # Busca de relatórios /RM e RC para anexo de documentos dentro da automação, englobam os casos de não padronização de tamanho, espaço de caracteres, e formato de letras.
     # Não aborda o caso de escrita invertida
     # Os arquivos dentro do relatório clínico precisam de padronização para evitar erros futuros.
-    #############################################################################################
+#################################################################################################
     p = Path(caminho_pasta)
 
     arquivos_rm = []
@@ -176,9 +186,9 @@ class IpasgoAutomation(BaseAutomation):
         self.row_index = self.start_row
 
     
-        self.file_path = r"C:\Users\joaop\OneDrive\Área de Trabalho\SOLICITACOES_AUTORIZACAO_FACPLAN_ATUALIZADO.xlsx"
-        self.sheet_name = 'AUTORIZACOES'
-        self.txt_file_path = os.path.join(r"C:\Users\joaop\OneDrive\Área de Trabalho\Arquivo para salvar processamento d.txt")  # Caminho do arquivo txt
+        self.file_path = r"C:\Users\SUPERVISÃO ADM\Desktop\SOLICITACOES_AUTORIZACAO_FACPLAN_ATUALIZADO.xlsx" # Caminho do arquivo excel
+        self.sheet_name = 'AUTORIZACOES' #aba da planilha que será usada para extração dos dados
+        self.txt_file_path = os.path.join(r"C:\Users\SUPERVISÃO ADM\Desktop\números_guias_test.txt")  # Caminho do arquivo txt
 
         # Ler o arquivo Excel original
         self.df = pd.read_excel(
@@ -735,7 +745,7 @@ class IpasgoAutomation(BaseAutomation):
 
     def Anexando_RM(self):
         try:
-            base_path = Path(r"C:\Users\joaop\OneDrive\Área de Trabalho\IPASGO")
+            base_path = Path(r"G:\Meu Drive\IPASGO\1.RELATORIO MEDICO E CLINICO")
             nome_paciente = self.get_excel_value('PACIENTE')
             id_paciente = self.get_excel_value('CARTEIRA')
 
@@ -772,7 +782,23 @@ class IpasgoAutomation(BaseAutomation):
                 break
 
             self.safe_click((By.XPATH, '//*[@id="upload_form"]/div/input[2]'))
-            time.sleep(2)
+            time.sleep(1)
+
+             # Verificação se o arquivo foi anexado com sucesso
+            nome_arquivo = arquivo_para_upload.name  # Obtém o nome do arquivo
+            xpath_arquivo_anexado = '//*[@id="arquivos-enviados"]/tbody/tr[1]/td[3]/strong'
+
+            # Espera explícita até que o elemento apareça e o texto corresponda
+            try:
+                elemento_anexo = WebDriverWait(self.driver, 10).until(
+                    EC.text_to_be_present_in_element(
+                        (By.XPATH, xpath_arquivo_anexado),
+                        nome_arquivo
+                    )
+                )
+                logging.info("Arquivo de RC está presente na caixa de diálogo determinada, podendo prosseguir a atividade.")
+            except TimeoutException:
+                raise Exception(f"Arquivo '{nome_arquivo}' não foi anexado com sucesso.")
 
         except Exception:
             pass
@@ -800,7 +826,7 @@ class IpasgoAutomation(BaseAutomation):
 
     def Anexando_RC(self):
         try:
-            base_path = Path(r"C:\Users\joaop\OneDrive\Área de Trabalho\IPASGO")
+            base_path = Path(r"G:\Meu Drive\IPASGO\1.RELATORIO MEDICO E CLINICO")
             nome_paciente = self.get_excel_value('PACIENTE')
             id_paciente = self.get_excel_value('CARTEIRA')
             cbo = self.get_excel_value('CBO')
@@ -860,6 +886,22 @@ class IpasgoAutomation(BaseAutomation):
             
             self.safe_click((By.XPATH, '//*[@id="upload_form"]/div/input[2]'))
             time.sleep(1)
+
+            # Verificação se o arquivo foi anexado com sucesso
+            nome_arquivo = arquivo_para_upload.name  # Obtém o nome do arquivo
+            xpath_arquivo_anexado = '//*[@id="arquivos-enviados"]/tbody/tr[2]/td[3]/strong'
+
+            # Espera explícita até que o elemento apareça e o texto corresponda
+            try:
+                elemento_anexo = WebDriverWait(self.driver, 10).until(
+                    EC.text_to_be_present_in_element(
+                        (By.XPATH, xpath_arquivo_anexado),
+                        nome_arquivo
+                    )
+                )
+                logging.info("Arquivo de RC está presente na caixa de diálogo determinada, podendo prosseguir a atividade.")
+            except TimeoutException:
+                raise Exception(f"Arquivo '{nome_arquivo}' não foi anexado com sucesso.")
 
         except Exception:
             pass
@@ -1053,9 +1095,9 @@ class IpasgoAutomation(BaseAutomation):
                 if numero_guia:
                     self.df.at[self.row_index, col_name] = numero_guia
                     logging.info(f"Número da Guia '{numero_guia}' salvo com sucesso na coluna '{col_name}'.")
-                else:
-                    self.df.at[self.row_index, col_name] = 'SUCESSO'
-                    logging.info(f"Número da Guia 'SUCESSO' salvo com sucesso na coluna '{col_name}'.")
+                else:           
+                    self.df.at[self.row_index, col_name] = 'SUCESSO mas sem numero'
+                    logging.info(f"não foi possível a captura do numero, mas foi bem sucedido. {col_name}'.")
                 self.df.at[self.row_index, erro_col_name] = ''
 
             # Salva o DataFrame de volta no arquivo Excel
@@ -1152,7 +1194,8 @@ if __name__ == "__main__":
         iniciar_button = tk.Button(root, text="Iniciar", command=iniciar_processo)
         iniciar_button.grid(row=4, column=0, columnspan=2, pady=10)
 
-        
+                # Adiciona o filtro ao logger principal
+
         root.mainloop()
 
     except Exception as e:
