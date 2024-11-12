@@ -567,7 +567,6 @@ class IpasgoAutomation(BaseAutomation):
                 EC.visibility_of_element_located((By.ID, "incluirProcedimento"))
             )
             
-
             # Verifica se o elemento 'confirmarEdicaoDeProcedimento' está presente e visível
             confirmar_button_locator = (By.XPATH, '//*[@id="confirmarEdicaoDeProcedimento"]')
             confirmar_button = self.driver.find_element(*confirmar_button_locator)
@@ -1275,3 +1274,5 @@ if __name__ == "__main__":
     except Exception as e:
         logging.error(f"Erro crítico: {e}")
       
+
+modificado 12/11/2024
