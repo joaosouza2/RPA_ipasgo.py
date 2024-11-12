@@ -762,21 +762,43 @@ class IpasgoAutomation(BaseAutomation):
 
 
     def selecionar_pedido_medico(self):
-        """Seleciona o tipo de anexo usando teclas de navegação."""
-        try:
+        """Seleciona o tipo de anexo 'PEDIDO MEDICO'."""
+        max_attempts = 2
+        for attempt in range(max_attempts):
+            try:
+                # Acessa o dropdown do tipo de anexo
+                tipo_anexo_dropdown = self.acessar_com_reattempt((By.ID, "tipoAnexoGuiaUpload"))
+                select = Select(tipo_anexo_dropdown)
 
-            tipo_anexo_dropdown = self.acessar_com_reattempt((By.ID, "tipoAnexoGuiaUpload"))
-            tipo_anexo_dropdown.click()
-            time.sleep(1)
+                select.select_by_value('1')  # Valor correspondente a 'PEDIDO MEDICO'
+                time.sleep(1)
 
-            # Simula a tecla para baixo várias vezes até chegar na opção desejada
-            for _ in range(46): 
-                tipo_anexo_dropdown.send_keys(Keys.ARROW_DOWN)
+                # Verifica se a opção correta foi selecionada
+                selected_option = select.first_selected_option
+                if selected_option.get_attribute('value') == '1':
+                    logging.info("Tipo de anexo 'PEDIDO MEDICO' selecionado com sucesso.")
+                    return  
+                else:
+                    logging.error("A opção selecionada não é 'PEDIDO MEDICO'.")
+                    raise Exception
 
-            tipo_anexo_dropdown.send_keys(Keys.RETURN)
+            except (NoSuchElementException, ElementNotInteractableException) as e:
+                
+                if attempt < max_attempts - 1:
+                    logging.info("irá executar novamente para selecionar PEDIDO MEDICO")
+                    time.sleep(1)
+                    continue  
+                else:
+                    raise
+            except Exception as e:
+                logging.error(f"Erro ao selecionar 'PEDIDO MEDICO' na primeira tentativa")
+                if attempt < max_attempts - 1:
+                    time.sleep(1)
+                    continue
+                else:
+                    logging.error("Falha ao selecionar 'PEDIDO MEDICO'")
+                    raise
 
-        except Exception:
-            pass
 
 
 
@@ -833,22 +855,41 @@ class IpasgoAutomation(BaseAutomation):
 
 
     def selecionar_relatorio_clinico(self):
-        """Seleciona o tipo de anexo usando teclas de navegação."""
-        try:
+        """Seleciona o tipo de anexo 'RELATÓRIO CLÍNICO'."""
+        max_attempts = 2
+        for attempt in range(max_attempts):
+            try:
+                # Acessa o dropdown do tipo de anexo
+                tipo_anexo_dropdown = self.acessar_com_reattempt((By.ID, "tipoAnexoGuiaUpload"))
+                select = Select(tipo_anexo_dropdown)
 
-            tipo_anexo_dropdown = self.acessar_com_reattempt((By.ID, "tipoAnexoGuiaUpload"))
-            tipo_anexo_dropdown.click()
-            time.sleep(1)
+                select.select_by_value('33')  # Valor correspondente a 'RELATÓRIO CLÍNICO'
+                time.sleep(1)
 
-            for _ in range(10):  
-                tipo_anexo_dropdown.send_keys(Keys.ARROW_DOWN)
+                # Verifica se a opção correta foi selecionada
+                selected_option = select.first_selected_option
+                if selected_option.get_attribute('value') == '33':
+                    logging.info("A opção 'RELATÓRIO CLÍNICO' selecionado com sucesso.")
+                    return  # Sai da função se sucesso
+                else:
+                    logging.error("A opção selecionada não é 'RELATÓRIO CLÍNICO'.")
+                    raise Exception
 
-            tipo_anexo_dropdown.send_keys(Keys.RETURN)
-
-            time.sleep(1)
-            
-        except Exception:
-            pass
+            except (NoSuchElementException, ElementNotInteractableException) as e:
+                if attempt < max_attempts - 1:
+                    logging.info("irá executar novamente para selecionar RELATORIO CLINICO")
+                    time.sleep(1)
+                    continue  # Tenta novamente desde o início do loop
+                else:
+                    raise
+            except Exception as e:
+                logging.error(f"Erro ao selecionar 'RELATÓRIO CLÍNICO' na tentativa {attempt + 1}")
+                if attempt < max_attempts - 1:
+                    logging.info("Tentando novamente a seleção da opção de 'RELATÓRIO CLÍNICO'.")
+                    time.sleep(1)
+                    continue
+                else:
+                    raise
 
 
     def Anexando_RC(self):
