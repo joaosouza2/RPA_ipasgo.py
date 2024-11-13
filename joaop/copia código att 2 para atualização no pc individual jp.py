@@ -431,7 +431,7 @@ class IpasgoAutomation(BaseAutomation):
                 logging.info("Popup para inserção do número da carteira aberto.")
 
                 # Aguarda o popup aparecer
-                WebDriverWait(self.driver, 15).until(
+                WebDriverWait(self.driver, 10).until(
                     EC.visibility_of_element_located((By.XPATH, '//*[@id="cartao"]'))
                 )
 
@@ -523,9 +523,10 @@ class IpasgoAutomation(BaseAutomation):
             # Agora verifica se o campo realmente contém a data inserida
             valor_preenchido = data_solicitacao_input.get_attribute('value')
             if valor_preenchido != data_solicitacao_str:
+                logging.error(f"O campo 'Data de Solicitação' não foi preenchido corretamente. Esperado: {data_solicitacao_str}, Encontrado: {valor_preenchido}")
                 return
             else:
-                pass
+                logging.info(f"O campo 'Data de Solicitação' foi verificado e contém o valor correto.")
 
         except Exception:
             pass
@@ -850,7 +851,7 @@ class IpasgoAutomation(BaseAutomation):
                         nome_arquivo
                     )
                 )
-                logging.info("Arquivo de RC está presente na caixa de diálogo determinada, podendo prosseguir a atividade.")
+                logging.info("Arquivo de RM está presente na caixa de diálogo determinada, podendo prosseguir a atividade.")
             except TimeoutException:
                 raise Exception(f"Arquivo '{nome_arquivo}' não foi anexado com sucesso.")
 
@@ -898,38 +899,31 @@ class IpasgoAutomation(BaseAutomation):
 
 
     def Anexando_RC(self):
+        """Anexa o Relatório Clínico (RC) do paciente."""
         try:
-            base_path = Path(r"G:\Meu Drive\IPASGO\1.RELATORIO MEDICO E CLINICO")
-            nome_paciente = self.get_excel_value('PACIENTE')
+            if not hasattr(self, 'patient_folder_path'):
+                logging.error("O caminho da pasta do paciente não foi preparado.")
+                return
+
             id_paciente = self.get_excel_value('CARTEIRA')
             cbo = self.get_excel_value('CBO')
             cbo = str(int(float(cbo)))
 
-            if not nome_paciente or not id_paciente or not cbo:
+            if not cbo:
+                logging.error("Falha ao obter o CBO da planilha.")
                 return
-            logging.info(f"Paciente: {nome_paciente}, ID: {id_paciente}, CBO: {cbo}")
+            logging.info(f"CBO: {cbo}")
 
-            patient_folder_name = f"{nome_paciente}-{id_paciente}"
-            patient_folder_path = base_path / patient_folder_name
+            # Chamada da função para encontrar os arquivos RC
+            _, arquivos_rc_fono, arquivos_rc_psi, arquivos_rc_to = encontrar_arquivos_paciente(self.patient_folder_path, id_paciente)
 
-            logging.info(f"O caminho do arquivo é: {patient_folder_path}")
-
-            if not patient_folder_path.is_dir():
-                logging.error(f"A pasta do paciente '{nome_paciente}' não foi encontrada.")
-                return
-
-            # Chamada corrigida da função
-            _, arquivos_rc_fono, arquivos_rc_psi, arquivos_rc_to = encontrar_arquivos_paciente(patient_folder_path, id_paciente)
-
-
-            
-            if cbo == "251510":  
+            if cbo == "251510":  # Psicologia
                 arquivos_rc = arquivos_rc_psi
                 logging.info("CBO indica PSICOLOGIA. Selecionando arquivos PSI.")
-            elif cbo == "223810":  
+            elif cbo == "223810":  # Fonoaudiologia
                 arquivos_rc = arquivos_rc_fono
                 logging.info("CBO indica FONOAUDIOLOGIA. Selecionando arquivos FONO.")
-            elif cbo == "223905":  
+            elif cbo == "223905":  # Terapia Ocupacional
                 arquivos_rc = arquivos_rc_to
                 logging.info("CBO indica TERAPIA OCUPACIONAL. Selecionando arquivos TO.")
             else:
@@ -942,24 +936,19 @@ class IpasgoAutomation(BaseAutomation):
 
             logging.info(f"Arquivos RC encontrados: {arquivos_rc}")
 
-            
             for arquivo_para_upload in arquivos_rc:
-                
                 input_file = self.driver.find_element(By.CSS_SELECTOR, 'input[type="file"]')
                 logging.info("Elemento de upload encontrado.")
 
-                
                 input_file.send_keys(str(arquivo_para_upload))
-                logging.info(f"Arquivo '{arquivo_para_upload}' inserido com sucesso.")
+                logging.info(f"Arquivo '{arquivo_para_upload}' selecionado com sucesso.")
 
                 time.sleep(2)
+                break  # Anexa apenas o primeiro arquivo encontrado
 
-                break  
-
-            
             self.safe_click((By.XPATH, '//*[@id="upload_form"]/div/input[2]'))
             time.sleep(1)
-
+            
             # Verificação se o arquivo foi anexado com sucesso
             nome_arquivo = arquivo_para_upload.name  # Obtém o nome do arquivo
             xpath_arquivo_anexado = '//*[@id="arquivos-enviados"]/tbody/tr[2]/td[3]/strong'
@@ -976,8 +965,9 @@ class IpasgoAutomation(BaseAutomation):
             except TimeoutException:
                 raise Exception(f"Arquivo '{nome_arquivo}' não foi anexado com sucesso.")
 
-        except Exception:
-            pass
+        except Exception as e:
+            logging.error(f"Erro ao fazer upload dos arquivos RC do paciente: {e}")
+            raise
 
 
  
@@ -987,12 +977,11 @@ class IpasgoAutomation(BaseAutomation):
             salvar_button = self.driver.find_element(By.XPATH, '//*[@id="btnGravar"]')
             self.driver.execute_script("arguments[0].scrollIntoView(true);", salvar_button)
             time.sleep(1.5)
-
             salvar_button.click()
 
+            logging.info("Botão 'Salvar' clicado com sucesso.")
             time.sleep(1.5)  
 
-            # Tenta clicar no botão "Confirmar"
             try:
                 # Espera até que o botão "Confirmar" esteja presente
                 WebDriverWait(self.driver, 10).until(
@@ -1275,4 +1264,3 @@ if __name__ == "__main__":
         logging.error(f"Erro crítico: {e}")
       
 
-modificado 12/11/2024

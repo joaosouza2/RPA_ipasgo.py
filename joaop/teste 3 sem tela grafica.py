@@ -420,7 +420,7 @@ class IpasgoAutomation(BaseAutomation):
                 logging.info("Popup para inserção do número da carteira aberto.")
 
                 # Aguarda o popup aparecer
-                WebDriverWait(self.driver, 15).until(
+                WebDriverWait(self.driver, 10).until(
                     EC.visibility_of_element_located((By.XPATH, '//*[@id="cartao"]'))
                 )
 
@@ -505,9 +505,8 @@ class IpasgoAutomation(BaseAutomation):
             data_solicitacao_input.click()  # Clique no campo para garantir que está focado
             data_solicitacao_input.clear()  # Limpa o texto existente
             data_solicitacao_input.send_keys(data_solicitacao_str)  # Insere a data
-            logging.info(f"Campo 'Data de Solicitação' preenchido com sucesso com o valor: {data_solicitacao_str}")
+            logging.info(f"A 'Data de Solicitação' foi preenchida com sucesso: {data_solicitacao_str}")
 
-            # Aguarda um breve momento para o campo processar a entrada
             time.sleep(1)
 
             # Agora verifica se o campo realmente contém a data inserida
@@ -845,7 +844,7 @@ class IpasgoAutomation(BaseAutomation):
                         nome_arquivo
                     )
                 )
-                logging.info("Arquivo de RC está presente na caixa de diálogo determinada, podendo prosseguir a atividade.")
+                logging.info("Arquivo de RM está presente na caixa de diálogo determinada, podendo prosseguir a atividade.")
             except TimeoutException:
                 raise Exception(f"Arquivo '{nome_arquivo}' não foi anexado com sucesso.")
 
@@ -972,10 +971,10 @@ class IpasgoAutomation(BaseAutomation):
             self.driver.execute_script("arguments[0].scrollIntoView(true);", salvar_button)
             time.sleep(1.5)
             salvar_button.click()
-            logging.info("Botão 'Salvar' clicado com sucesso.")
-            time.sleep(1.5)  # Aguarda um momento para a página processar
 
-            # Tenta clicar no botão "Confirmar"
+            logging.info("Botão 'Salvar' clicado com sucesso.")
+            time.sleep(1.5)  
+        
             try:
                 # Espera até que o botão "Confirmar" esteja presente
                 WebDriverWait(self.driver, 10).until(
@@ -1256,4 +1255,3 @@ if __name__ == "__main__":
     except Exception as e:
         logging.error(f"Erro crítico: {e}")
 
-modificado 12/11/2024
