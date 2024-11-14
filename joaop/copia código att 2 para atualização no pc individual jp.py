@@ -1193,11 +1193,11 @@ if __name__ == "__main__":
         password_entry = tk.Entry(root, textvariable=password_var, show="*")
         password_entry.grid(row=1, column=1, padx=10, pady=5)
 
-        tk.Label(root, text="Linha inicial do Excel").grid(row=2, column=0, padx=10, pady=5)
+        tk.Label(root, text="Linha inicial do processamento Excel").grid(row=2, column=0, padx=10, pady=5)
         start_row_entry = tk.Entry(root, textvariable=start_row_var)
         start_row_entry.grid(row=2, column=1, padx=10, pady=5)
 
-        tk.Label(root, text="Linha final do Excel").grid(row=3, column=0, padx=10, pady=5)
+        tk.Label(root, text="Linha final do processamento Excel").grid(row=3, column=0, padx=10, pady=5)
         end_row_entry = tk.Entry(root, textvariable=end_row_var)
         end_row_entry.grid(row=3, column=1, padx=10, pady=5)
 
@@ -1217,7 +1217,7 @@ if __name__ == "__main__":
                 start_row = int(start_row)
                 end_row = int(end_row)
             except ValueError:
-                messagebox.showerror("Erro", "As linhas inicial e final devem ser números inteiros.")
+                messagebox.showerror("Error", "o valor inserido, não é um valor valido ou colocou linha que ainda não é os dados dos pacientes, ou de fato linha 1.")
                 return
 
             
@@ -1241,6 +1241,9 @@ if __name__ == "__main__":
                 return
             if ipasgo.start_row > ipasgo.end_row:
                 print("A linha inicial não pode ser maior que a linha final.")
+                return
+            if ipasgo.start_row == ipasgo.end_row:
+                print(f"será processado apenas a linha {max_row + 2}")
                 return
 
         
